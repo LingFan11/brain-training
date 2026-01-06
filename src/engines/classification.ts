@@ -158,8 +158,6 @@ function generateDoubleAttributeRule(): ClassificationRule {
   
   let value1: string;
   let value2: string;
-  let description: string;
-  let test: (item: ClassificationItem) => boolean;
   
   // 获取第一个属性的值
   if (attr1 === 'shape') {
@@ -179,9 +177,9 @@ function generateDoubleAttributeRule(): ClassificationRule {
     value2 = SIZES[Math.floor(Math.random() * SIZES.length)];
   }
   
-  description = `${getAttributeDescription(attr1, value1)}且${getAttributeDescription(attr2, value2)}`;
+  const description = `${getAttributeDescription(attr1, value1)}且${getAttributeDescription(attr2, value2)}`;
   
-  test = (item) => {
+  const test = (item: ClassificationItem) => {
     const match1 = item[attr1] === value1;
     const match2 = item[attr2] === value2;
     return match1 && match2;

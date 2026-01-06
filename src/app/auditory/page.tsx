@@ -3,22 +3,52 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { PageLayout } from "@/components/layout";
-import { 
-  AuditoryDisplay, 
-  ResponseButton, 
-  AuditoryResult, 
-  AuditoryDifficultySelector 
-} from "@/components/auditory";
-import { 
-  AuditoryEngine, 
-  getAuditoryConfigFromDifficulty,
-  type AuditoryResult as AuditoryResultType,
-  type ChineseSound,
-} from "@/engines/auditory";
+import { AuditoryDisplay, ResponseButton, AuditoryResult, AuditoryDifficultySelector } from "@/components/auditory";
+import { TrainingIntro, Leaderboard } from "@/components/shared";
+import { AuditoryEngine, getAuditoryConfigFromDifficulty, type AuditoryResult as AuditoryResultType, type ChineseSound } from "@/engines/auditory";
 import { saveRecord } from "@/services/storage";
+import { useTimer } from "@/components/shared";
 
 type GamePhase = "setup" | "playing" | "result";
 type FeedbackType = "hit" | "miss" | "falseAlarm" | "correctRejection" | null;
+
+const AUDITORY_INTRO = {
+  title: "训练说明",
+  description: "系统会播放一系列中文数字语音。你需要在听到目标声音时，尽快点击响应按钮。听到其他声音时不要点击。",
+  benefits: [
+    "提升听觉选择性注意能力",
+    "增强听觉信息处理速度",
+    "改善持续性注意力",
+    "训练快速反应能力",
+    "有助于提高听力理解能力",
+  ],
+  tips: [
+    "确保设备音量适中",
+    "在安静环境中进行训练",
+    "专注于目标声音的特征",
+    "保持稳定的反应节奏",
+    "避免过度紧张导致误按",
+  ],
+  referenceData: [
+    {
+      title: "表现标准",
+      items: [
+        { label: "优秀命中率", value: ">95%" },
+        { label: "良好命中率", value: "85-95%" },
+        { label: "虚报率控制", value: "<10%" },
+        { label: "平均反应时间", value: "300-500ms" },
+      ],
+    },
+    {
+      title: "训练效果",
+      items: [
+        { label: "初学者", value: "命中率80%左右" },
+        { label: "熟练者", value: "命中率95%以上" },
+        { label: "专家水平", value: "反应时间<300ms" },
+      ],
+    },
+  ],
+};
 
 export default function AuditoryPage() {
   const [difficulty, setDifficulty] = useState(5);
@@ -36,48 +66,31 @@ export default function AuditoryPage() {
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const speechSynthRef = useRef<SpeechSynthesisUtterance | null>(null);
+  
+  const timer = useTimer();
 
-  // 清理定时器
   useEffect(() => {
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-      if (speechSynthesis.speaking) {
-        speechSynthesis.cancel();
-      }
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (speechSynthesis.speaking) speechSynthesis.cancel();
     };
   }, []);
 
-  // 播放声音（使用Web Speech API）
   const playSound = useCallback((sound: ChineseSound) => {
     return new Promise<void>((resolve) => {
-      // 取消之前的语音
-      if (speechSynthesis.speaking) {
-        speechSynthesis.cancel();
-      }
-
+      if (speechSynthesis.speaking) speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(sound);
       utterance.lang = "zh-CN";
       utterance.rate = 0.9;
       utterance.pitch = 1;
       utterance.volume = 1;
-      
-      utterance.onend = () => {
-        resolve();
-      };
-      
-      utterance.onerror = () => {
-        resolve();
-      };
-
+      utterance.onend = () => resolve();
+      utterance.onerror = () => resolve();
       speechSynthRef.current = utterance;
       speechSynthesis.speak(utterance);
     });
   }, []);
 
-
-  // 初始化引擎
   const initializeEngine = useCallback((diff: number) => {
     const config = getAuditoryConfigFromDifficulty(diff);
     const newEngine = new AuditoryEngine(config);
@@ -88,119 +101,15 @@ export default function AuditoryPage() {
     setShowFeedback(false);
     setFeedbackType(null);
     setHasResponded(false);
-  }, []);
+    timer.reset();
+  }, [timer]);
 
-  // 播放下一个试次
-  const playNextTrial = useCallback(async () => {
-    if (!engine || engine.isComplete()) return;
-
-    const trial = engine.getCurrentTrial();
-    if (!trial) return;
-
-    setHasResponded(false);
-    setCurrentSound(trial.sound);
-    setIsPlaying(true);
-    setShowFeedback(false);
-    setFeedbackType(null);
-
-    // 播放声音
-    await playSound(trial.sound);
-    
-    setIsPlaying(false);
-
-    // 等待用户响应的时间窗口
-    const config = engine.getConfig();
-    const responseWindow = config.interStimulusInterval || 1000;
-
-    timerRef.current = setTimeout(() => {
-      // 如果用户没有响应，自动前进
-      if (!hasResponded) {
-        handleNoResponse();
-      }
-    }, responseWindow);
-  }, [engine, playSound, hasResponded]);
-
-  // 处理无响应
-  const handleNoResponse = useCallback(() => {
-    if (!engine || engine.isComplete()) return;
-
-    const trial = engine.getCurrentTrial();
-    if (!trial) return;
-
-    // 前进到下一个试次（会自动记录未响应）
-    engine.advance();
-    
-    // 显示反馈
-    setShowFeedback(true);
-    setFeedbackType(trial.isTarget ? "miss" : "correctRejection");
-
-    setTimeout(() => {
-      setShowFeedback(false);
-      setFeedbackType(null);
-      
-      if (engine.isComplete()) {
-        finishGame();
-      } else {
-        setProgress(engine.getProgress());
-        playNextTrial();
-      }
-    }, 500);
-  }, [engine]);
-
-  // 处理用户响应
-  const handleRespond = useCallback(() => {
-    if (!engine || phase !== "playing" || hasResponded) return;
-
-    // 清除等待定时器
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-
-    setHasResponded(true);
-    setIsButtonPressed(true);
-
-    const response = engine.respond();
-    
-    setTimeout(() => {
-      setIsButtonPressed(false);
-    }, 150);
-
-    if (response) {
-      // 显示反馈
-      setShowFeedback(true);
-      if (response.hit) {
-        setFeedbackType("hit");
-      } else if (response.falseAlarm) {
-        setFeedbackType("falseAlarm");
-      }
-
-      // 前进到下一个试次
-      engine.advance();
-
-      setTimeout(() => {
-        setShowFeedback(false);
-        setFeedbackType(null);
-        
-        if (engine.isComplete()) {
-          finishGame();
-        } else {
-          setProgress(engine.getProgress());
-          playNextTrial();
-        }
-      }, 500);
-    }
-  }, [engine, phase, hasResponded, playNextTrial]);
-
-  // 完成游戏
   const finishGame = useCallback(() => {
     if (!engine) return;
-
+    timer.stop();
     const gameResult = engine.calculateResult();
     setResult(gameResult);
     setPhase("result");
-
-    // 保存记录
     setIsSaving(true);
     saveRecord({
       moduleType: "auditory",
@@ -219,80 +128,122 @@ export default function AuditoryPage() {
         dPrime: gameResult.dPrime,
         avgResponseTime: gameResult.avgResponseTime,
       },
-    }).catch((error) => {
-      console.error("Failed to save record:", error);
-    }).finally(() => {
-      setIsSaving(false);
-    });
+    }).catch((error) => console.error("Failed to save record:", error)).finally(() => setIsSaving(false));
   }, [engine, difficulty]);
 
-  // 开始游戏
+  const handleNoResponse = useCallback(() => {
+    if (!engine || engine.isComplete()) return;
+    const trial = engine.getCurrentTrial();
+    if (!trial) return;
+    engine.advance();
+    setShowFeedback(true);
+    setFeedbackType(trial.isTarget ? "miss" : "correctRejection");
+    setTimeout(() => {
+      setShowFeedback(false);
+      setFeedbackType(null);
+      if (engine.isComplete()) {
+        finishGame();
+      } else {
+        setProgress(engine.getProgress());
+        playNextTrial();
+      }
+    }, 500);
+  }, [engine, finishGame]);
+
+  const playNextTrial = useCallback(async () => {
+    if (!engine || engine.isComplete()) return;
+    const trial = engine.getCurrentTrial();
+    if (!trial) return;
+    setHasResponded(false);
+    setCurrentSound(trial.sound);
+    setIsPlaying(true);
+    setShowFeedback(false);
+    setFeedbackType(null);
+    await playSound(trial.sound);
+    setIsPlaying(false);
+    const config = engine.getConfig();
+    const responseWindow = config.interStimulusInterval || 1000;
+    timerRef.current = setTimeout(() => {
+      if (!hasResponded) handleNoResponse();
+    }, responseWindow);
+  }, [engine, playSound, hasResponded, handleNoResponse]);
+
+  const handleRespond = useCallback(() => {
+    if (!engine || phase !== "playing" || hasResponded) return;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setHasResponded(true);
+    setIsButtonPressed(true);
+    const response = engine.respond();
+    setTimeout(() => setIsButtonPressed(false), 150);
+    if (response) {
+      setShowFeedback(true);
+      if (response.hit) setFeedbackType("hit");
+      else if (response.falseAlarm) setFeedbackType("falseAlarm");
+      engine.advance();
+      setTimeout(() => {
+        setShowFeedback(false);
+        setFeedbackType(null);
+        if (engine.isComplete()) finishGame();
+        else {
+          setProgress(engine.getProgress());
+          playNextTrial();
+        }
+      }, 500);
+    }
+  }, [engine, phase, hasResponded, playNextTrial, finishGame]);
+
   const startGame = useCallback(() => {
     initializeEngine(difficulty);
     setPhase("playing");
   }, [difficulty, initializeEngine]);
 
-  // 游戏开始后播放第一个试次
   useEffect(() => {
     if (phase === "playing" && engine && !engine.isComplete()) {
       engine.start();
-      // 短暂延迟后开始播放
-      const startDelay = setTimeout(() => {
-        playNextTrial();
-      }, 1000);
-      
+      timer.start();
+      const startDelay = setTimeout(() => playNextTrial(), 1000);
       return () => clearTimeout(startDelay);
     }
   }, [phase, engine]);
 
-  // 重新开始（相同难度）
   const handleRestart = useCallback(() => {
     initializeEngine(difficulty);
     setResult(null);
     setPhase("playing");
   }, [difficulty, initializeEngine]);
 
-  // 更换难度
   const handleChangeDifficulty = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel();
-    }
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (speechSynthesis.speaking) speechSynthesis.cancel();
+    timer.reset();
     setResult(null);
     setPhase("setup");
-  }, []);
+  }, [timer]);
 
-  // 处理难度选择
-  const handleDifficultySelect = useCallback((diff: number) => {
-    setDifficulty(diff);
-  }, []);
+  // 格式化计时显示
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 10);
+
+    if (mins > 0) {
+      return `${mins}:${secs.toString().padStart(2, "0")}.${ms}`;
+    }
+    return `${secs}.${ms}`;
+  };
 
   const config = getAuditoryConfigFromDifficulty(difficulty);
-
 
   return (
     <PageLayout showNav={false}>
       <div className="space-y-6">
-        {/* 顶部导航 */}
         <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <svg
-              className="w-5 h-5 mr-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
+          <Link href="/" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             返回
           </Link>
@@ -300,24 +251,10 @@ export default function AuditoryPage() {
           <div className="w-12" />
         </div>
 
-        {/* 设置阶段 */}
         {phase === "setup" && (
           <div className="space-y-6">
-            <div className="card">
-              <h2 className="text-lg font-semibold text-gray-800 mb-2">训练说明</h2>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                系统会播放一系列中文数字语音。你需要在听到<strong>目标声音</strong>时，
-                尽快点击响应按钮。听到其他声音时不要点击。
-                这项训练可以提升你的听觉选择性注意能力。
-              </p>
-            </div>
-
-            <AuditoryDifficultySelector
-              selectedDifficulty={difficulty}
-              onSelect={handleDifficultySelect}
-            />
-
-            {/* 配置预览 */}
+            <TrainingIntro {...AUDITORY_INTRO} />
+            <AuditoryDifficultySelector selectedDifficulty={difficulty} onSelect={setDifficulty} />
             <div className="card">
               <h3 className="text-sm font-medium text-gray-600 mb-3">训练配置</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -327,88 +264,50 @@ export default function AuditoryPage() {
                 </div>
                 <div>
                   <span className="text-gray-500">目标比例：</span>
-                  <span className="font-semibold text-gray-800">
-                    {Math.round(config.targetRatio * 100)}%
-                  </span>
+                  <span className="font-semibold text-gray-800">{Math.round(config.targetRatio * 100)}%</span>
                 </div>
               </div>
             </div>
-
             <div className="card bg-yellow-50 border-yellow-200">
-              <p className="text-sm text-yellow-800">
-                <strong>提示：</strong>请确保设备音量已开启，训练将使用语音播放功能。
-              </p>
+              <p className="text-sm text-yellow-800"><strong>提示：</strong>请确保设备音量已开启，训练将使用语音播放功能。</p>
             </div>
-
-            <button
-              onClick={startGame}
-              className="btn-primary w-full text-lg py-4"
-            >
-              开始训练
-            </button>
+            <Leaderboard moduleType="auditory" />
+            <button onClick={startGame} className="btn-primary w-full text-lg py-4">开始训练</button>
           </div>
         )}
 
-        {/* 游戏阶段 */}
         {phase === "playing" && engine && (
           <div className="space-y-6">
-            {/* 进度指示 */}
             <div className="card">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-500">进度</span>
-                <span className="text-sm font-semibold text-gray-800">
-                  {progress.current} / {progress.total}
-                </span>
+                <div>
+                  <span className="text-sm text-gray-500">进度</span>
+                  <p className="text-lg font-semibold text-gray-800">{progress.current} / {progress.total}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm text-gray-500">用时</span>
+                  <p className="text-2xl font-mono font-bold text-orange-500">{formatTime(timer.time)}</p>
+                </div>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-teal-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(progress.current / progress.total) * 100}%` }}
-                />
+                <div className="bg-teal-500 h-2 rounded-full transition-all duration-300" style={{ width: `${(progress.current / progress.total) * 100}%` }} />
               </div>
             </div>
-
-            {/* 声音显示 */}
             <div className="card">
-              <AuditoryDisplay
-                currentSound={currentSound}
-                targetSound={engine.getTargetSound()}
-                isPlaying={isPlaying}
-                showFeedback={showFeedback}
-                feedbackType={feedbackType}
-              />
+              <AuditoryDisplay currentSound={currentSound} targetSound={engine.getTargetSound()} isPlaying={isPlaying} showFeedback={showFeedback} feedbackType={feedbackType} />
             </div>
-
-            {/* 响应按钮 */}
             <div className="flex justify-center">
-              <ResponseButton
-                onRespond={handleRespond}
-                disabled={showFeedback || hasResponded}
-                isPressed={isButtonPressed}
-              />
+              <ResponseButton onRespond={handleRespond} disabled={showFeedback || hasResponded} isPressed={isButtonPressed} />
             </div>
-
-            {/* 放弃按钮 */}
-            <button
-              onClick={handleChangeDifficulty}
-              className="btn-secondary w-full"
-            >
-              放弃本次训练
-            </button>
+            <button onClick={handleChangeDifficulty} className="btn-secondary w-full">放弃本次训练</button>
           </div>
         )}
 
-        {/* 结果阶段 */}
         {phase === "result" && result && (
           <div className="space-y-4">
-            <AuditoryResult
-              result={result}
-              onRestart={handleRestart}
-              onChangeDifficulty={handleChangeDifficulty}
-            />
-            {isSaving && (
-              <p className="text-center text-sm text-gray-500">正在保存记录...</p>
-            )}
+            <AuditoryResult result={result} onRestart={handleRestart} onChangeDifficulty={handleChangeDifficulty} />
+            <Leaderboard moduleType="auditory" currentScore={result.score} currentDuration={result.duration} />
+            {isSaving && <p className="text-center text-sm text-gray-500">正在保存记录...</p>}
           </div>
         )}
       </div>

@@ -3,21 +3,52 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { PageLayout } from "@/components/layout";
-import { 
-  ClassificationItemDisplay, 
-  ClassificationButtons, 
-  ClassificationResult, 
-  ClassificationDifficultySelector 
-} from "@/components/classification";
-import { 
-  ClassificationEngine, 
-  getConfigFromDifficulty,
-  type ClassificationResult as ClassificationResultType,
-  type ClassificationItem,
-} from "@/engines/classification";
+import { ClassificationItemDisplay, ClassificationButtons, ClassificationResult, ClassificationDifficultySelector } from "@/components/classification";
+import { TrainingIntro, Leaderboard } from "@/components/shared";
+import { ClassificationEngine, getConfigFromDifficulty, type ClassificationResult as ClassificationResultType, type ClassificationItem } from "@/engines/classification";
 import { saveRecord } from "@/services/storage";
+import { useTimer } from "@/components/shared";
 
 type GamePhase = "setup" | "playing" | "result";
+
+const CLASSIFICATION_INTRO = {
+  title: "训练说明",
+  description: "屏幕上会显示不同形状、颜色、大小的图形。你需要根据隐藏的规则判断每个图形是否符合规则。连续答对后规则会改变，你需要发现新规则。",
+  benefits: [
+    "提升逻辑推理能力",
+    "增强规则发现和归纳能力",
+    "改善认知灵活性",
+    "训练抽象思维能力",
+    "有助于问题解决和决策能力",
+  ],
+  tips: [
+    "仔细观察图形的各种属性",
+    "根据反馈推断可能的规则",
+    "规则改变时要快速调整策略",
+    "不要固守之前的规则",
+    "保持开放的思维方式",
+  ],
+  referenceData: [
+    {
+      title: "威斯康星卡片分类测验参考",
+      items: [
+        { label: "正常成人", value: "完成6个类别" },
+        { label: "持续性错误", value: "<15%" },
+        { label: "规则切换", value: "连续10次正确后切换" },
+        { label: "总试次", value: "通常128次" },
+      ],
+    },
+    {
+      title: "表现标准",
+      items: [
+        { label: "优秀", value: "发现5+规则" },
+        { label: "良好", value: "发现3-4规则" },
+        { label: "中等", value: "发现2规则" },
+        { label: "需练习", value: "发现1规则" },
+      ],
+    },
+  ],
+};
 
 export default function ClassificationPage() {
   const [difficulty, setDifficulty] = useState(5);
@@ -32,8 +63,9 @@ export default function ClassificationPage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [result, setResult] = useState<ClassificationResultType | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  const timer = useTimer();
 
-  // 初始化引擎
   const initializeEngine = useCallback((diff: number) => {
     const config = getConfigFromDifficulty(diff);
     const newEngine = new ClassificationEngine(config);
@@ -45,22 +77,19 @@ export default function ClassificationPage() {
     setLastSelected(null);
     setLastCorrect(null);
     setShowFeedback(false);
-  }, []);
+    timer.reset();
+  }, [timer]);
 
-  // 开始游戏
   const startGame = useCallback(() => {
     initializeEngine(difficulty);
     setPhase("playing");
   }, [difficulty, initializeEngine]);
 
-
-  // 处理分类选择
   const handleClassify = useCallback(async (userAnswer: boolean) => {
     if (!engine || phase !== "playing") return;
-
-    // 如果还没开始，先开始
     if (engine.getState().startTime === null) {
       engine.start();
+      timer.start();
     }
 
     const isCorrect = engine.respond(userAnswer);
@@ -68,18 +97,16 @@ export default function ClassificationPage() {
     setLastCorrect(isCorrect);
     setShowFeedback(true);
 
-    // 短暂显示反馈后更新到下一个分类项
     setTimeout(() => {
       setShowFeedback(false);
       setLastSelected(null);
       setLastCorrect(null);
       
       if (engine.isComplete()) {
+        timer.stop();
         const gameResult = engine.calculateResult();
         setResult(gameResult);
         setPhase("result");
-
-        // 保存记录
         setIsSaving(true);
         saveRecord({
           moduleType: "classification",
@@ -94,11 +121,7 @@ export default function ClassificationPage() {
             rulesDiscovered: gameResult.rulesDiscovered,
             avgConsecutiveCorrect: gameResult.avgConsecutiveCorrect,
           },
-        }).catch((error) => {
-          console.error("Failed to save record:", error);
-        }).finally(() => {
-          setIsSaving(false);
-        });
+        }).catch((error) => console.error("Failed to save record:", error)).finally(() => setIsSaving(false));
       } else {
         setCurrentItem(engine.getCurrentItem());
         setProgress(engine.getProgress());
@@ -106,49 +129,41 @@ export default function ClassificationPage() {
         setRulesDiscovered(engine.getRulesDiscovered());
       }
     }, 300);
-  }, [engine, phase, difficulty]);
+  }, [engine, phase, difficulty, timer]);
 
-  // 重新开始（相同难度）
   const handleRestart = useCallback(() => {
     initializeEngine(difficulty);
     setResult(null);
     setPhase("playing");
   }, [difficulty, initializeEngine]);
 
-  // 更换难度
   const handleChangeDifficulty = useCallback(() => {
+    timer.reset();
     setResult(null);
     setPhase("setup");
-  }, []);
+  }, [timer]);
 
-  // 处理难度选择
-  const handleDifficultySelect = useCallback((diff: number) => {
-    setDifficulty(diff);
-  }, []);
+  // 格式化计时显示
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 10);
+
+    if (mins > 0) {
+      return `${mins}:${secs.toString().padStart(2, "0")}.${ms}`;
+    }
+    return `${secs}.${ms}`;
+  };
 
   const config = getConfigFromDifficulty(difficulty);
 
   return (
     <PageLayout showNav={false}>
       <div className="space-y-6">
-        {/* 顶部导航 */}
         <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <svg
-              className="w-5 h-5 mr-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
+          <Link href="/" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             返回
           </Link>
@@ -156,25 +171,10 @@ export default function ClassificationPage() {
           <div className="w-12" />
         </div>
 
-        {/* 设置阶段 */}
         {phase === "setup" && (
           <div className="space-y-6">
-            <div className="card">
-              <h2 className="text-lg font-semibold text-gray-800 mb-2">训练说明</h2>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                屏幕上会显示不同形状、颜色、大小的图形。
-                你需要根据隐藏的规则判断每个图形是否符合规则。
-                连续答对后规则会改变，你需要发现新规则。
-                这项训练可以提升你的逻辑推理和规则发现能力。
-              </p>
-            </div>
-
-            <ClassificationDifficultySelector
-              selectedDifficulty={difficulty}
-              onSelect={handleDifficultySelect}
-            />
-
-            {/* 配置预览 */}
+            <TrainingIntro {...CLASSIFICATION_INTRO} />
+            <ClassificationDifficultySelector selectedDifficulty={difficulty} onSelect={setDifficulty} />
             <div className="card">
               <h3 className="text-sm font-medium text-gray-600 mb-3">训练配置</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -192,37 +192,28 @@ export default function ClassificationPage() {
                 </div>
               </div>
             </div>
-
-            <button
-              onClick={startGame}
-              className="btn-primary w-full text-lg py-4"
-            >
-              开始训练
-            </button>
+            <Leaderboard moduleType="classification" />
+            <button onClick={startGame} className="btn-primary w-full text-lg py-4">开始训练</button>
           </div>
         )}
 
-
-        {/* 游戏阶段 */}
         {phase === "playing" && (
           <div className="space-y-6">
-            {/* 进度指示 */}
             <div className="card">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-500">进度</span>
-                <span className="text-sm font-semibold text-gray-800">
-                  {progress.current} / {progress.total}
-                </span>
+                <div>
+                  <span className="text-sm text-gray-500">进度</span>
+                  <p className="text-lg font-semibold text-gray-800">{progress.current} / {progress.total}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm text-gray-500">用时</span>
+                  <p className="text-2xl font-mono font-bold text-orange-500">{formatTime(timer.time)}</p>
+                </div>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(progress.current / progress.total) * 100}%` }}
-                />
+                <div className="bg-orange-500 h-2 rounded-full transition-all duration-300" style={{ width: `${(progress.current / progress.total) * 100}%` }} />
               </div>
             </div>
-
-            {/* 状态信息 */}
             <div className="grid grid-cols-2 gap-4">
               <div className="card text-center">
                 <p className="text-xs text-gray-500 mb-1">连续正确</p>
@@ -233,45 +224,19 @@ export default function ClassificationPage() {
                 <p className="text-2xl font-bold text-blue-600">{rulesDiscovered}</p>
               </div>
             </div>
-
-            {/* 分类项显示 */}
             <div className="card">
-              <ClassificationItemDisplay
-                item={currentItem}
-                showFeedback={showFeedback}
-                feedbackCorrect={lastCorrect}
-              />
+              <ClassificationItemDisplay item={currentItem} showFeedback={showFeedback} feedbackCorrect={lastCorrect} />
             </div>
-
-            {/* 分类选择按钮 */}
-            <ClassificationButtons
-              onSelect={handleClassify}
-              disabled={showFeedback}
-              lastSelected={lastSelected}
-              lastCorrect={lastCorrect}
-            />
-
-            {/* 放弃按钮 */}
-            <button
-              onClick={handleChangeDifficulty}
-              className="btn-secondary w-full"
-            >
-              放弃本次训练
-            </button>
+            <ClassificationButtons onSelect={handleClassify} disabled={showFeedback} lastSelected={lastSelected} lastCorrect={lastCorrect} />
+            <button onClick={handleChangeDifficulty} className="btn-secondary w-full">放弃本次训练</button>
           </div>
         )}
 
-        {/* 结果阶段 */}
         {phase === "result" && result && (
           <div className="space-y-4">
-            <ClassificationResult
-              result={result}
-              onRestart={handleRestart}
-              onChangeDifficulty={handleChangeDifficulty}
-            />
-            {isSaving && (
-              <p className="text-center text-sm text-gray-500">正在保存记录...</p>
-            )}
+            <ClassificationResult result={result} onRestart={handleRestart} onChangeDifficulty={handleChangeDifficulty} />
+            <Leaderboard moduleType="classification" currentScore={result.score} currentDuration={result.duration} />
+            {isSaving && <p className="text-center text-sm text-gray-500">正在保存记录...</p>}
           </div>
         )}
       </div>

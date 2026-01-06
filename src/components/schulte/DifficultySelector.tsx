@@ -22,7 +22,7 @@ export default function DifficultySelector({
 }: DifficultySelectorProps) {
   return (
     <div className="w-full">
-      <h3 className="text-sm font-medium text-gray-600 mb-2">选择难度</h3>
+      <h3 className="text-sm font-medium text-gray-700 mb-2">选择难度</h3>
       <div className="grid grid-cols-4 gap-2">
         {GRID_OPTIONS.map(({ size, label, description }) => (
           <button
@@ -30,18 +30,22 @@ export default function DifficultySelector({
             onClick={() => onSelect(size)}
             disabled={disabled}
             className={`
-              py-3 px-2 rounded-xl border-2 transition-all duration-200
+              py-3 px-2 rounded-2xl transition-all duration-200
               touch-manipulation flex flex-col items-center justify-center
               ${
                 selectedSize === size
-                  ? "border-blue-500 bg-blue-50 text-blue-600"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                  ? "bg-indigo-500/80 text-white border border-indigo-400/50 shadow-lg shadow-indigo-500/30"
+                  : "glass-strong text-gray-700 hover:bg-white/40"
               }
               ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
             `}
+            style={{
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+            }}
           >
             <span className="font-bold text-lg">{label}</span>
-            <span className="text-xs mt-0.5">{description}</span>
+            <span className={`text-xs mt-0.5 ${selectedSize === size ? "text-indigo-100" : ""}`}>{description}</span>
           </button>
         ))}
       </div>

@@ -59,7 +59,7 @@ export async function getDeviceId(): Promise<string> {
     localStorage.setItem(DEVICE_ID_KEY, deviceId);
     
     return deviceId;
-  } catch (error) {
+  } catch {
     // 如果 FingerprintJS 失败，生成随机 UUID 作为备用
     const fallbackId = generateFallbackId();
     localStorage.setItem(DEVICE_ID_KEY, fallbackId);

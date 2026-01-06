@@ -33,20 +33,20 @@ export default function SchulteGrid({
   const getCellStyle = (number: number) => {
     // 已完成的数字（小于当前目标）
     if (number < currentTarget) {
-      return "bg-green-100 text-green-600 border-green-200";
+      return "glass text-green-600 border-green-300/50";
     }
     
     // 刚刚点击的数字
     if (number === lastTappedNumber) {
       if (lastTapCorrect) {
-        return "bg-green-500 text-white border-green-600 scale-95";
+        return "bg-green-500/80 text-white border-green-400 scale-95 backdrop-blur-sm";
       } else {
-        return "bg-red-500 text-white border-red-600 animate-shake";
+        return "bg-red-500/80 text-white border-red-400 animate-shake backdrop-blur-sm";
       }
     }
     
     // 默认样式
-    return "bg-white text-gray-800 border-gray-200 hover:bg-gray-50 active:bg-gray-100";
+    return "glass-strong text-gray-800 hover:bg-white/40 active:bg-white/50";
   };
 
   // 根据网格大小计算字体大小
@@ -80,7 +80,7 @@ export default function SchulteGrid({
               onClick={() => handleTap(number)}
               disabled={disabled || number < currentTarget}
               className={`
-                aspect-square rounded-xl border-2 font-bold
+                aspect-square rounded-2xl font-bold
                 transition-all duration-150 touch-manipulation
                 flex items-center justify-center
                 ${getFontSize()}

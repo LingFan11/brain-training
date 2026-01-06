@@ -26,27 +26,31 @@ export default function ColorButtons({
           borderColor: baseColor,
           color: "white",
           transform: "scale(0.95)",
+          boxShadow: `0 8px 32px ${baseColor}40`,
         };
       } else {
         return {
-          backgroundColor: "#fee2e2",
+          backgroundColor: "rgba(254, 226, 226, 0.8)",
           borderColor: "#ef4444",
           color: "#ef4444",
+          boxShadow: "0 8px 32px rgba(239, 68, 68, 0.3)",
         };
       }
     }
     
-    // 默认样式
+    // 默认样式 - 液态玻璃
     return {
-      backgroundColor: "white",
+      backgroundColor: "rgba(255, 255, 255, 0.25)",
       borderColor: baseColor,
       color: baseColor,
+      backdropFilter: "blur(12px)",
+      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
     };
   };
 
   return (
     <div className="w-full">
-      <p className="text-sm text-gray-500 text-center mb-3">选择墨水颜色</p>
+      <p className="text-sm text-gray-600 text-center mb-3">选择墨水颜色</p>
       <div className="grid grid-cols-2 gap-3">
         {CHINESE_COLORS.map((color) => {
           const style = getButtonStyle(color);
@@ -56,16 +60,19 @@ export default function ColorButtons({
               onClick={() => onSelect(color)}
               disabled={disabled}
               className={`
-                py-4 px-6 rounded-xl border-3 font-bold text-2xl
-                transition-all duration-150 touch-manipulation
-                ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-95"}
+                py-4 px-6 rounded-2xl border-2 font-bold text-2xl
+                transition-all duration-200 touch-manipulation
+                ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:scale-[1.02] active:scale-95"}
               `}
               style={{
                 backgroundColor: style.backgroundColor,
                 borderColor: style.borderColor,
-                borderWidth: "3px",
+                borderWidth: "2px",
                 color: style.color,
                 transform: style.transform,
+                backdropFilter: style.backdropFilter,
+                WebkitBackdropFilter: style.backdropFilter,
+                boxShadow: style.boxShadow,
               }}
             >
               {color}

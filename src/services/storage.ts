@@ -43,7 +43,7 @@ export interface NewTrainingRecord {
 export async function saveRecord(record: NewTrainingRecord): Promise<TrainingRecord> {
   const deviceId = await getDeviceId();
   
-  const newRecord: Omit<TrainingRecord, 'id' | 'created_at'> = {
+  const newRecord = {
     device_id: deviceId,
     module_type: record.moduleType,
     score: record.score,
@@ -56,7 +56,8 @@ export async function saveRecord(record: NewTrainingRecord): Promise<TrainingRec
   // 尝试保存到云端
   if (isSupabaseConfigured() && supabase) {
     try {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from('training_records')
         .insert(newRecord)
         .select()
@@ -65,9 +66,9 @@ export async function saveRecord(record: NewTrainingRecord): Promise<TrainingRec
       if (error) throw error;
       
       // 同时更新本地缓存
-      addToLocalCache(data);
+      addToLocalCache(data as TrainingRecord);
       
-      return data;
+      return data as TrainingRecord;
     } catch (error) {
       console.warn('Failed to save to cloud, caching locally:', error);
       return saveToLocalCacheOnly(newRecord);
@@ -90,7 +91,8 @@ export async function getRecords(
   // 尝试从云端获取
   if (isSupabaseConfigured() && supabase) {
     try {
-      let query = supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (supabase as any)
         .from('training_records')
         .select('*')
         .eq('device_id', deviceId)
@@ -110,10 +112,10 @@ export async function getRecords(
       
       // 更新本地缓存
       if (data) {
-        updateLocalCache(data);
+        updateLocalCache(data as TrainingRecord[]);
       }
       
-      return data || [];
+      return (data || []) as TrainingRecord[];
     } catch (error) {
       console.warn('Failed to fetch from cloud, using local cache:', error);
       return getFromLocalCache(moduleType, limit);
@@ -150,17 +152,20 @@ export async function syncLocalCache(): Promise<void> {
 
   for (const record of pendingRecords) {
     try {
-      const { error } = await supabase
+      const insertData = {
+        device_id: record.device_id,
+        module_type: record.module_type,
+        score: record.score,
+        accuracy: record.accuracy,
+        duration: record.duration,
+        difficulty: record.difficulty,
+        details: record.details,
+      };
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('training_records')
-        .insert({
-          device_id: record.device_id,
-          module_type: record.module_type,
-          score: record.score,
-          accuracy: record.accuracy,
-          duration: record.duration,
-          difficulty: record.difficulty,
-          details: record.details,
-        });
+        .insert(insertData);
 
       if (!error) {
         successfulIds.push(record.id);
@@ -341,9 +346,10 @@ function calculateStreakDays(records: TrainingRecord[]): number {
   if (records.length === 0) return 0;
   
   // 获取所有训练日期（去重）
-  const dates = [...new Set(
+  const dateSet = new Set(
     records.map(r => new Date(r.created_at).toDateString())
-  )].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  );
+  const dates = Array.from(dateSet).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
   
   if (dates.length === 0) return 0;
   

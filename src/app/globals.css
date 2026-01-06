@@ -3,13 +3,20 @@
 @tailwind utilities;
 
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
-  --primary: #3b82f6;
-  --primary-dark: #2563eb;
+  --background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  --foreground: #1a1a2e;
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
+  
+  /* 液态玻璃变量 */
+  --glass-bg: rgba(255, 255, 255, 0.15);
+  --glass-bg-strong: rgba(255, 255, 255, 0.25);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+  --glass-blur: blur(20px);
 }
 
 @layer base {
@@ -23,6 +30,7 @@
   body {
     color: var(--foreground);
     background: var(--background);
+    background-attachment: fixed;
     min-height: 100vh;
     min-height: 100dvh;
     overscroll-behavior: none;
@@ -41,7 +49,6 @@
     user-select: auto;
   }
 
-  /* 优化触摸交互 */
   button,
   a,
   [role="button"] {
@@ -49,12 +56,10 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* 防止iOS上的双击缩放 */
   button {
     touch-action: manipulation;
   }
 
-  /* 优化滚动性能 */
   .scroll-container {
     -webkit-overflow-scrolling: touch;
     overflow-y: auto;
@@ -62,42 +67,127 @@
 }
 
 @layer components {
+  /* 液态玻璃按钮 - 主要 */
   .btn-primary {
-    @apply bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-medium py-3 px-6 rounded-xl transition-colors duration-200 touch-manipulation;
+    @apply font-medium py-3 px-6 rounded-2xl transition-all duration-300 touch-manipulation;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.8), rgba(139, 92, 246, 0.8));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  }
+
+  /* 液态玻璃按钮 - 次要 */
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-800 font-medium py-3 px-6 rounded-xl transition-colors duration-200 touch-manipulation;
+    @apply font-medium py-3 px-6 rounded-2xl transition-all duration-300 touch-manipulation;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #374151;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
 
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary:active {
+    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* 液态玻璃卡片 */
   .card {
-    @apply bg-white rounded-2xl shadow-sm p-4 border border-gray-100;
+    @apply rounded-3xl p-5;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+
+  /* 强调卡片 */
+  .card-strong {
+    @apply rounded-3xl p-5;
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   }
 
   .page-container {
-    @apply min-h-screen pb-20 px-4 pt-4;
+    @apply min-h-screen pb-24 px-4 pt-4;
   }
 
-  /* 响应式容器 */
   .responsive-container {
     @apply w-full max-w-lg mx-auto px-4;
   }
 
-  /* 触摸友好的按钮 */
   .touch-btn {
     @apply min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation;
   }
 
-  /* 响应式网格 */
   .responsive-grid {
     @apply grid gap-3;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
 
+  /* 液态玻璃输入框 */
+  .glass-input {
+    @apply w-full px-4 py-3 rounded-xl transition-all duration-200;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #1f2937;
+  }
+
+  .glass-input:focus {
+    outline: none;
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  }
+
+  .glass-input::placeholder {
+    color: rgba(107, 114, 128, 0.7);
+  }
+
+  /* 液态玻璃底部导航 */
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  /* 液态玻璃标签 */
+  .glass-tag {
+    @apply px-3 py-1 rounded-full text-sm font-medium;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
   /* 小屏幕优化 */
   @media (max-width: 360px) {
     .card {
-      @apply p-3;
+      @apply p-4;
     }
     
     .page-container {
@@ -105,7 +195,6 @@
     }
   }
 
-  /* 大屏幕优化 */
   @media (min-width: 640px) {
     .responsive-grid {
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -138,6 +227,36 @@
     touch-action: manipulation;
   }
 
+  /* 玻璃效果工具类 */
+  .glass {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* 渐变文字 */
+  .text-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   /* 错误反馈动画 */
   .animate-shake {
     animation: shake 0.3s ease-in-out;
@@ -166,6 +285,11 @@
 
   .animate-scale-in {
     animation: scaleIn 0.2s ease-out forwards;
+  }
+
+  /* 液态玻璃浮动动画 */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
   }
 
   @keyframes fadeIn {
@@ -204,5 +328,27 @@
       opacity: 1;
       transform: scale(1);
     }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  /* 光晕效果 */
+  .glow {
+    box-shadow: 0 0 40px rgba(99, 102, 241, 0.3);
+  }
+
+  .glow-success {
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.3);
+  }
+
+  .glow-warning {
+    box-shadow: 0 0 40px rgba(245, 158, 11, 0.3);
+  }
+
+  .glow-error {
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.3);
   }
 }

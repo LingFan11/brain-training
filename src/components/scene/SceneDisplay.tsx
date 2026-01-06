@@ -1,6 +1,6 @@
 "use client";
 
-import { type SceneElement, ELEMENT_NAME_MAP } from "@/engines/scene";
+import { type SceneElement } from "@/engines/scene";
 
 interface SceneDisplayProps {
   elements: SceneElement[];

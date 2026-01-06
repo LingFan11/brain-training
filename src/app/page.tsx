@@ -7,8 +7,8 @@ export default function Home() {
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center pt-2 animate-fade-in">
-          <h1 className="text-2xl font-bold text-gray-900">认知训练平台</h1>
-          <p className="text-gray-500 mt-1">科学训练，提升认知能力</p>
+          <h1 className="text-2xl font-bold text-gray-800">认知训练平台</h1>
+          <p className="text-gray-600 mt-1">科学训练，提升认知能力</p>
         </div>
 
         {/* Quick Stats Summary */}

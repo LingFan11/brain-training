@@ -28,8 +28,8 @@ export default function QuickStats() {
         <div className="flex justify-around">
           {[1, 2, 3].map((i) => (
             <div key={i} className="text-center">
-              <div className="h-8 w-12 bg-gray-200 rounded mx-auto mb-1" />
-              <div className="h-4 w-16 bg-gray-200 rounded" />
+              <div className="h-8 w-12 bg-white/30 rounded-lg mx-auto mb-1" />
+              <div className="h-4 w-16 bg-white/30 rounded-lg" />
             </div>
           ))}
         </div>
@@ -39,10 +39,10 @@ export default function QuickStats() {
 
   if (!stats || stats.totalSessions === 0) {
     return (
-      <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
+      <div className="card">
         <div className="text-center py-2">
-          <p className="text-gray-600 mb-2">开始你的第一次训练吧！</p>
-          <p className="text-sm text-gray-500">选择下方任意模块开始</p>
+          <p className="text-gray-700 mb-2">开始你的第一次训练吧！</p>
+          <p className="text-sm text-gray-600">选择下方任意模块开始</p>
         </div>
       </div>
     );
@@ -58,31 +58,31 @@ export default function QuickStats() {
 
   return (
     <Link href="/stats" className="block">
-      <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 hover:shadow-md transition-all duration-200 active:scale-[0.98]">
+      <div className="card hover:bg-white/30 transition-all duration-300 active:scale-[0.98] group">
         <div className="flex justify-around items-center">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-indigo-600">
               {stats.totalSessions}
             </div>
-            <div className="text-xs text-gray-500">训练次数</div>
+            <div className="text-xs text-gray-600">训练次数</div>
           </div>
-          <div className="w-px h-10 bg-blue-200" />
+          <div className="w-px h-10 bg-white/40" />
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-emerald-600">
               {stats.streakDays}
             </div>
-            <div className="text-xs text-gray-500">连续天数</div>
+            <div className="text-xs text-gray-600">连续天数</div>
           </div>
-          <div className="w-px h-10 bg-blue-200" />
+          <div className="w-px h-10 bg-white/40" />
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-2xl font-bold text-violet-600">
               {formatDuration(stats.totalDuration)}
             </div>
-            <div className="text-xs text-gray-500">总时长</div>
+            <div className="text-xs text-gray-600">总时长</div>
           </div>
         </div>
         <div className="mt-3 text-center">
-          <span className="text-xs text-blue-500 flex items-center justify-center gap-1">
+          <span className="text-xs text-indigo-600 flex items-center justify-center gap-1 group-hover:gap-2 transition-all">
             查看详细统计
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

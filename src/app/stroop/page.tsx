@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { PageLayout } from "@/components/layout";
 import { StroopWord, ColorButtons, StroopResult, StroopDifficultySelector } from "@/components/stroop";
+import { TrainingIntro, Leaderboard } from "@/components/shared";
 import { 
   StroopEngine, 
   getConfigFromDifficulty,
@@ -11,8 +12,47 @@ import {
   type ChineseColor,
 } from "@/engines/stroop";
 import { saveRecord } from "@/services/storage";
+import { useTimer } from "@/components/shared";
 
 type GamePhase = "setup" | "playing" | "result";
+
+// Stroop训练介绍数据
+const STROOP_INTRO = {
+  title: "训练说明",
+  description: "屏幕上会显示颜色词（如\"红\"、\"蓝\"），但文字的墨水颜色可能与词义不同。你需要选择文字的墨水颜色，而不是词义。",
+  benefits: [
+    "提升认知控制和抑制能力",
+    "增强选择性注意力",
+    "改善执行功能和反应速度",
+    "训练大脑处理冲突信息的能力",
+    "有助于提高阅读理解和学习效率",
+  ],
+  tips: [
+    "专注于文字的颜色，忽略文字的含义",
+    "保持稳定的节奏，不要急于求成",
+    "错误后不要慌张，继续保持专注",
+    "随着练习，反应速度会逐渐提高",
+  ],
+  referenceData: [
+    {
+      title: "Stroop效应参考",
+      items: [
+        { label: "一致条件", value: "反应更快更准确" },
+        { label: "不一致条件", value: "反应较慢，需要抑制" },
+        { label: "优秀准确率", value: "95%以上" },
+        { label: "平均反应时间", value: "500-800毫秒" },
+      ],
+    },
+    {
+      title: "训练效果",
+      items: [
+        { label: "初学者", value: "准确率80%左右" },
+        { label: "熟练者", value: "准确率95%以上" },
+        { label: "专家水平", value: "反应时间<500ms" },
+      ],
+    },
+  ],
+};
 
 export default function StroopPage() {
   const [difficulty, setDifficulty] = useState(5);
@@ -25,6 +65,8 @@ export default function StroopPage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [result, setResult] = useState<StroopResultType | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  const timer = useTimer();
 
   // 初始化引擎
   const initializeEngine = useCallback((diff: number) => {
@@ -36,14 +78,14 @@ export default function StroopPage() {
     setLastSelected(null);
     setLastCorrect(null);
     setShowFeedback(false);
-  }, []);
+    timer.reset();
+  }, [timer]);
 
   // 开始游戏
   const startGame = useCallback(() => {
     initializeEngine(difficulty);
     setPhase("playing");
   }, [difficulty, initializeEngine]);
-
 
   // 处理颜色选择
   const handleColorSelect = useCallback(async (color: ChineseColor) => {
@@ -52,6 +94,7 @@ export default function StroopPage() {
     // 如果还没开始，先开始
     if (engine.getState().startTime === null) {
       engine.start();
+      timer.start();
     }
 
     const isCorrect = engine.respond(color);
@@ -66,6 +109,7 @@ export default function StroopPage() {
       setLastCorrect(null);
       
       if (engine.isComplete()) {
+        timer.stop();
         const gameResult = engine.calculateResult();
         setResult(gameResult);
         setPhase("result");
@@ -107,9 +151,22 @@ export default function StroopPage() {
 
   // 更换难度
   const handleChangeDifficulty = useCallback(() => {
+    timer.reset();
     setResult(null);
     setPhase("setup");
-  }, []);
+  }, [timer]);
+
+  // 格式化计时显示
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 10);
+
+    if (mins > 0) {
+      return `${mins}:${secs.toString().padStart(2, "0")}.${ms}`;
+    }
+    return `${secs}.${ms}`;
+  };
 
   // 处理难度选择
   const handleDifficultySelect = useCallback((diff: number) => {
@@ -149,14 +206,7 @@ export default function StroopPage() {
         {/* 设置阶段 */}
         {phase === "setup" && (
           <div className="space-y-6">
-            <div className="card">
-              <h2 className="text-lg font-semibold text-gray-800 mb-2">训练说明</h2>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                屏幕上会显示颜色词（如"红"、"蓝"），但文字的墨水颜色可能与词义不同。
-                你需要选择文字的<strong>墨水颜色</strong>，而不是词义。
-                这项训练可以提升你的认知控制和抑制能力。
-              </p>
-            </div>
+            <TrainingIntro {...STROOP_INTRO} />
 
             <StroopDifficultySelector
               selectedDifficulty={difficulty}
@@ -180,6 +230,9 @@ export default function StroopPage() {
               </div>
             </div>
 
+            {/* 排行榜 */}
+            <Leaderboard moduleType="stroop" />
+
             <button
               onClick={startGame}
               className="btn-primary w-full text-lg py-4"
@@ -192,13 +245,21 @@ export default function StroopPage() {
         {/* 游戏阶段 */}
         {phase === "playing" && (
           <div className="space-y-6">
-            {/* 进度指示 */}
+            {/* 进度和计时 */}
             <div className="card">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-500">进度</span>
-                <span className="text-sm font-semibold text-gray-800">
-                  {progress.current} / {progress.total}
-                </span>
+                <div>
+                  <span className="text-sm text-gray-500">进度</span>
+                  <p className="text-lg font-semibold text-gray-800">
+                    {progress.current} / {progress.total}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm text-gray-500">用时</span>
+                  <p className="text-2xl font-mono font-bold text-orange-500">
+                    {formatTime(timer.time)}
+                  </p>
+                </div>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
@@ -243,6 +304,14 @@ export default function StroopPage() {
               onRestart={handleRestart}
               onChangeDifficulty={handleChangeDifficulty}
             />
+            
+            {/* 排行榜 */}
+            <Leaderboard 
+              moduleType="stroop" 
+              currentScore={result.score}
+              currentDuration={result.duration}
+            />
+            
             {isSaving && (
               <p className="text-center text-sm text-gray-500">正在保存记录...</p>
             )}
