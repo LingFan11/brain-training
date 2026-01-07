@@ -16,7 +16,6 @@ import {
   generateTrials,
   generateTrial,
   validateTrial,
-  validateTrials,
   CHINESE_COLORS,
   type StroopConfig,
   type ChineseColor,

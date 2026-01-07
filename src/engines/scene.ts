@@ -210,7 +210,7 @@ export function getPositionDescription(position: { x: number; y: number }): stri
  */
 function generateItemQuestion(
   element: SceneElement,
-  allElements: SceneElement[]
+  _allElements: SceneElement[]
 ): SceneTestQuestion {
   const posDesc = getPositionDescription(element.position);
   const correctAnswer = ELEMENT_NAME_MAP[element.type];
@@ -238,7 +238,7 @@ function generateItemQuestion(
  */
 function generateSpatialQuestion(
   element: SceneElement,
-  allElements: SceneElement[]
+  _allElements: SceneElement[]
 ): SceneTestQuestion {
   const elementName = ELEMENT_NAME_MAP[element.type];
   const correctAnswer = getPositionDescription(element.position);
@@ -518,11 +518,11 @@ export class SceneEngine {
     const accuracy = responses.length > 0 ? correctCount / responses.length : 0;
     
     // 分别计算物品和空间问题的准确率
-    const itemResponses = responses.filter((r, i) => {
+    const itemResponses = responses.filter((r) => {
       const q = questions.find(q => q.id === r.questionId);
       return q?.type === 'item';
     });
-    const spatialResponses = responses.filter((r, i) => {
+    const spatialResponses = responses.filter((r) => {
       const q = questions.find(q => q.id === r.questionId);
       return q?.type === 'spatial';
     });

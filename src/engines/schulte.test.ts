@@ -9,7 +9,7 @@
  * **Feature: cognitive-training-platform**
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import {
   SchulteEngine,
@@ -209,10 +209,9 @@ describe('SchulteEngine', () => {
     
     // Grid should be different (with high probability)
     // Note: There's a tiny chance the same grid is generated
-    const gridBeforeFlat = gridBefore.flat().join(',');
-    const gridAfterFlat = gridAfter.flat().join(',');
     // We don't assert they're different since it's probabilistic
     // Just verify the new grid is valid
+    void gridBefore; // Acknowledge unused variable
     expect(validateGrid(gridAfter, 4)).toBe(true);
   });
 
