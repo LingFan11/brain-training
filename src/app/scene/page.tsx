@@ -3,48 +3,62 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { PageLayout } from "@/components/layout";
-import { SceneDifficultySelector, SceneDisplay, SceneQuestion, SceneResult } from "@/components/scene";
+import {
+  PalaceRoom,
+  PalaceItemTray,
+  PalaceRoomNav,
+  PalaceResult,
+  PalaceDifficultySelector,
+} from "@/components/palace";
 import { TrainingIntro, Leaderboard } from "@/components/shared";
-import { SceneEngine, getSceneConfigFromDifficulty, type SceneResult as SceneResultType, type SceneElement, type SceneTestQuestion } from "@/engines/scene";
+import {
+  PalaceEngine,
+  getPalaceConfigFromDifficulty,
+  type PalaceResult as PalaceResultType,
+  type PalaceItem,
+  type Anchor,
+  type Placement,
+  PALACE_ITEMS,
+} from "@/engines/palace";
 import { saveRecord } from "@/services/storage";
-import { useTimer } from "@/components/shared";
 
 type GamePhase = "setup" | "study" | "test" | "result";
 
-const SCENE_INTRO = {
+const PALACE_INTRO = {
   title: "训练说明",
-  description: "屏幕上会显示一个包含多个物品的场景。在限定时间内记住每个物品及其位置。然后回答关于物品和位置的问题。",
+  description:
+    "进入记忆宫殿，在不同房间的固定位置记住物品。然后将物品拖拽回正确的位置。这是一种经典的记忆术训练方法。",
   benefits: [
-    "提升情景记忆能力",
-    "增强空间记忆能力",
-    "改善视觉工作记忆",
-    "训练信息编码和提取能力",
-    "有助于日常生活中的记忆任务",
+    "训练空间记忆能力",
+    "学习记忆宫殿技术",
+    "提升位置-物品关联记忆",
+    "增强工作记忆容量",
+    "改善长期记忆编码",
   ],
   tips: [
-    "使用位置联想法记忆物品",
-    "将物品与位置建立联系",
-    "尝试创建故事串联物品",
-    "注意物品之间的空间关系",
-    "多次练习可以提高记忆策略",
+    "将物品与位置建立生动联想",
+    "想象物品在该位置的场景",
+    "按房间顺序依次记忆",
+    "利用位置的特征辅助记忆",
+    "多次练习同一房间布局",
   ],
   referenceData: [
     {
-      title: "记忆容量参考",
+      title: "记忆宫殿效果",
       items: [
-        { label: "短期记忆容量", value: "7±2个项目" },
-        { label: "空间记忆", value: "4-5个位置" },
-        { label: "优秀表现", value: "记住8+物品位置" },
-        { label: "良好表现", value: "记住5-7物品位置" },
+        { label: "记忆提升", value: "2-3倍" },
+        { label: "专业选手", value: "50+物品" },
+        { label: "普通人", value: "7±2物品" },
+        { label: "训练后", value: "15-20物品" },
       ],
     },
     {
       title: "表现标准",
       items: [
-        { label: "优秀", value: "准确率>90%" },
-        { label: "良好", value: "准确率75-90%" },
-        { label: "中等", value: "准确率60-75%" },
-        { label: "需练习", value: "准确率<60%" },
+        { label: "完美", value: "准确率≥90%" },
+        { label: "优秀", value: "准确率70-89%" },
+        { label: "良好", value: "准确率50-69%" },
+        { label: "需练习", value: "准确率<50%" },
       ],
     },
   ],
@@ -53,63 +67,72 @@ const SCENE_INTRO = {
 export default function ScenePage() {
   const [difficulty, setDifficulty] = useState(5);
   const [phase, setPhase] = useState<GamePhase>("setup");
-  const [engine, setEngine] = useState<SceneEngine | null>(null);
-  const [elements, setElements] = useState<SceneElement[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState<SceneTestQuestion | null>(null);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [engine, setEngine] = useState<PalaceEngine | null>(null);
   const [studyTimeLeft, setStudyTimeLeft] = useState(0);
-  const [lastAnswer, setLastAnswer] = useState<string | null>(null);
-  const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [result, setResult] = useState<SceneResultType | null>(null);
+  const [result, setResult] = useState<PalaceResultType | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  
+
+  // 交互状态
+  const [selectedItem, setSelectedItem] = useState<PalaceItem | null>(null);
+  const [userPlacements, setUserPlacements] = useState<Placement[]>([]);
+  const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const timer = useTimer();
 
   useEffect(() => {
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
+  // 创建物品映射
+  const itemsMap = new Map<string, PalaceItem>(
+    PALACE_ITEMS.map((item) => [item.id, { id: item.id, name: item.name, icon: item.icon }])
+  );
+
   const initializeEngine = useCallback((diff: number) => {
-    const config = getSceneConfigFromDifficulty(diff);
-    const newEngine = new SceneEngine(config);
+    const config = getPalaceConfigFromDifficulty(diff);
+    const newEngine = new PalaceEngine(config);
     setEngine(newEngine);
-    setElements(newEngine.getElements());
-    setProgress(newEngine.getProgress());
-    setStudyTimeLeft(config.studyTime);
-    setLastAnswer(null);
-    setLastCorrect(null);
-    setShowFeedback(false);
-    timer.reset();
-  }, [timer]);
+    setUserPlacements([]);
+    setSelectedItem(null);
+    setCurrentRoomIndex(0);
+    setStudyTimeLeft(config.studyTimePerRoom);
+  }, []);
 
   const startStudy = useCallback(() => {
     if (!engine) return;
     engine.startStudy();
     setPhase("study");
+    setCurrentRoomIndex(0);
+
     const config = engine.getConfig();
-    setStudyTimeLeft(config.studyTime);
-    
+    setStudyTimeLeft(config.studyTimePerRoom);
+
     timerRef.current = setInterval(() => {
       setStudyTimeLeft((prev) => {
         if (prev <= 1) {
-          if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
+          // 检查是否还有下一个房间
+          const hasNext = engine.nextStudyRoom();
+          if (hasNext) {
+            setCurrentRoomIndex((i) => i + 1);
+            return config.studyTimePerRoom;
+          } else {
+            // 所有房间记忆完成，进入测试
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+            engine.startTest();
+            setPhase("test");
+            setCurrentRoomIndex(0);
+            return 0;
           }
-          engine.startTest();
-          timer.start();
-          setPhase("test");
-          setCurrentQuestion(engine.getCurrentQuestion());
-          setProgress(engine.getProgress());
-          return 0;
         }
         return prev - 1;
       });
     }, 1000);
-  }, [engine, timer]);
+  }, [engine]);
 
   const startGame = useCallback(() => {
     initializeEngine(difficulty);
@@ -119,47 +142,82 @@ export default function ScenePage() {
     if (engine && phase === "setup") startStudy();
   }, [engine, phase, startStudy]);
 
-  const handleAnswer = useCallback(async (answer: string) => {
-    if (!engine || phase !== "test" || showFeedback) return;
+  // 处理锚点点击（放置物品）
+  const handleAnchorClick = useCallback(
+    (anchor: Anchor) => {
+      if (!engine || phase !== "test") return;
 
-    const isCorrect = engine.respond(answer);
-    setLastAnswer(answer);
-    setLastCorrect(isCorrect);
-    setShowFeedback(true);
+      const room = engine.getRooms()[currentRoomIndex];
+      if (!room) return;
 
-    setTimeout(() => {
-      setShowFeedback(false);
-      setLastAnswer(null);
-      setLastCorrect(null);
-
-      if (engine.isComplete()) {
-        timer.stop();
-        const gameResult = engine.calculateResult();
-        setResult(gameResult);
-        setPhase("result");
-        setIsSaving(true);
-        saveRecord({
-          moduleType: "scene",
-          score: gameResult.score,
-          accuracy: gameResult.accuracy,
-          duration: Math.round(gameResult.duration),
-          difficulty: difficulty,
-          details: {
-            elementCount: gameResult.elementCount,
-            questionCount: gameResult.questionCount,
-            correctCount: gameResult.correctCount,
-            errorCount: gameResult.errorCount,
-            itemAccuracy: gameResult.itemAccuracy,
-            spatialAccuracy: gameResult.spatialAccuracy,
-            studyTime: gameResult.studyTime,
-          },
-        }).catch((error) => console.error("Failed to save record:", error)).finally(() => setIsSaving(false));
+      if (selectedItem) {
+        // 放置选中的物品
+        engine.placeItem(room.id, anchor.id, selectedItem.id);
+        setUserPlacements([...engine.getUserPlacements()]);
+        setSelectedItem(null);
       } else {
-        setCurrentQuestion(engine.getCurrentQuestion());
-        setProgress(engine.getProgress());
+        // 检查锚点上是否有物品，有则移除
+        const removed = engine.removeItem(room.id, anchor.id);
+        if (removed) {
+          setUserPlacements([...engine.getUserPlacements()]);
+        }
       }
-    }, 500);
-  }, [engine, phase, showFeedback, difficulty]);
+    },
+    [engine, phase, currentRoomIndex, selectedItem]
+  );
+
+  // 处理拖拽放置
+  const handleAnchorDrop = useCallback(
+    (anchor: Anchor, itemId: string) => {
+      if (!engine || phase !== "test") return;
+
+      const room = engine.getRooms()[currentRoomIndex];
+      if (!room) return;
+
+      engine.placeItem(room.id, anchor.id, itemId);
+      setUserPlacements([...engine.getUserPlacements()]);
+      setSelectedItem(null);
+    },
+    [engine, phase, currentRoomIndex]
+  );
+
+  // 切换房间（测试阶段）
+  const handleRoomSelect = useCallback(
+    (index: number) => {
+      if (phase === "test" && engine) {
+        setCurrentRoomIndex(index);
+      }
+    },
+    [phase, engine]
+  );
+
+  // 完成测试
+  const handleComplete = useCallback(() => {
+    if (!engine) return;
+
+    engine.complete();
+    const gameResult = engine.calculateResult();
+    setResult(gameResult);
+    setPhase("result");
+
+    setIsSaving(true);
+    saveRecord({
+      moduleType: "scene",
+      score: gameResult.score,
+      accuracy: gameResult.accuracy,
+      duration: Math.round(gameResult.duration),
+      difficulty: difficulty,
+      details: {
+        roomCount: gameResult.roomCount,
+        totalItems: gameResult.totalItems,
+        correctCount: gameResult.correctCount,
+        wrongCount: gameResult.wrongCount,
+        missedCount: gameResult.missedCount,
+      },
+    })
+      .catch((error) => console.error("Failed to save record:", error))
+      .finally(() => setIsSaving(false));
+  }, [engine, difficulty]);
 
   const handleRestart = useCallback(() => {
     if (timerRef.current) {
@@ -176,115 +234,167 @@ export default function ScenePage() {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    timer.reset();
     setEngine(null);
     setResult(null);
     setPhase("setup");
-  }, [timer]);
+    setUserPlacements([]);
+    setSelectedItem(null);
+  }, []);
 
-  // 格式化计时显示
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    const ms = Math.floor((seconds % 1) * 10);
+  const config = getPalaceConfigFromDifficulty(difficulty);
+  const rooms = engine?.getRooms() || [];
+  const currentRoom = rooms[currentRoomIndex];
+  const unplacedItems = engine?.getUnplacedItems() || [];
 
-    if (mins > 0) {
-      return `${mins}:${secs.toString().padStart(2, "0")}.${ms}`;
-    }
-    return `${secs}.${ms}`;
-  };
-
-  const config = getSceneConfigFromDifficulty(difficulty);
+  // 获取当前房间的放置情况
+  const currentRoomPlacements =
+    phase === "study"
+      ? engine?.getCurrentRoomPlacements() || []
+      : userPlacements.filter((p) => p.roomId === currentRoom?.id);
 
   return (
     <PageLayout showNav={false}>
-      <div className="space-y-6">
+      <div className="space-y-4">
+        {/* 顶部导航 */}
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+          <Link
+            href="/"
+            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+          >
             <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             返回
           </Link>
-          <h1 className="text-lg font-semibold text-gray-900">情景记忆训练</h1>
+          <h1 className="text-lg font-semibold text-gray-900">记忆宫殿</h1>
           <div className="w-12" />
         </div>
 
+        {/* 设置阶段 */}
         {phase === "setup" && !engine && (
-          <div className="space-y-6">
-            <TrainingIntro {...SCENE_INTRO} />
-            <SceneDifficultySelector selectedDifficulty={difficulty} onSelect={setDifficulty} />
-            <div className="card">
-              <h3 className="text-sm font-medium text-gray-600 mb-3">训练配置</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500">元素数量：</span>
-                  <span className="font-semibold text-gray-800">{config.elementCount}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">记忆时间：</span>
-                  <span className="font-semibold text-gray-800">{config.studyTime}秒</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-gray-500">测试类型：</span>
-                  <span className="font-semibold text-gray-800">
-                    {config.testType === "item" ? "物品记忆" : config.testType === "spatial" ? "位置记忆" : "物品+位置记忆"}
-                  </span>
-                </div>
-              </div>
-            </div>
+          <div className="space-y-4">
+            <TrainingIntro {...PALACE_INTRO} />
+            <PalaceDifficultySelector selectedDifficulty={difficulty} onSelect={setDifficulty} />
             <Leaderboard moduleType="scene" />
-            <button onClick={startGame} className="btn-primary w-full text-lg py-4">开始训练</button>
+            <button onClick={startGame} className="btn-primary w-full text-lg py-4">
+              进入宫殿
+            </button>
           </div>
         )}
 
-        {phase === "study" && (
-          <div className="space-y-6">
-            <div className="card text-center">
-              <p className="text-sm text-gray-500 mb-2">记忆时间</p>
-              <div className="relative inline-flex items-center justify-center">
-                <svg className="w-24 h-24 transform -rotate-90">
-                  <circle cx="48" cy="48" r="44" stroke="currentColor" strokeWidth="8" fill="none" className="text-gray-200" />
-                  <circle cx="48" cy="48" r="44" stroke="currentColor" strokeWidth="8" fill="none" strokeDasharray={276.46} strokeDashoffset={276.46 * (1 - studyTimeLeft / config.studyTime)} className="text-purple-500 transition-all duration-1000" />
-                </svg>
-                <span className="absolute text-3xl font-bold text-purple-600">{studyTimeLeft}</span>
+        {/* 记忆阶段 */}
+        {phase === "study" && currentRoom && (
+          <div className="space-y-4">
+            {/* 计时器 */}
+            <div className="card flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">记忆时间</p>
+                <p className="text-2xl font-bold text-purple-600">{studyTimeLeft}s</p>
               </div>
-              <p className="text-sm text-gray-600 mt-2">仔细记住每个物品的位置</p>
+              <div className="text-right">
+                <p className="text-sm text-gray-500">房间</p>
+                <p className="text-lg font-medium text-gray-700">
+                  {currentRoomIndex + 1} / {rooms.length}
+                </p>
+              </div>
             </div>
-            <SceneDisplay elements={elements} showElements={true} />
+
+            {/* 房间导航 */}
+            {rooms.length > 1 && (
+              <PalaceRoomNav rooms={rooms} currentIndex={currentRoomIndex} mode="study" />
+            )}
+
+            {/* 房间视图 */}
+            <PalaceRoom
+              room={currentRoom}
+              placements={currentRoomPlacements}
+              items={itemsMap}
+              mode="study"
+            />
+
+            {/* 提示 */}
             <div className="card bg-purple-50 border-purple-200">
-              <p className="text-sm text-purple-700 text-center">🪬 记住物品的类型和它们在场景中的位置</p>
+              <p className="text-sm text-purple-700 text-center">
+                🧠 记住每个物品的位置，稍后需要将它们放回原处
+              </p>
             </div>
-            <button onClick={handleChangeDifficulty} className="btn-secondary w-full">放弃本次训练</button>
+
+            <button onClick={handleChangeDifficulty} className="btn-secondary w-full">
+              放弃训练
+            </button>
           </div>
         )}
 
-        {phase === "test" && (
-          <div className="space-y-6">
-            <div className="card">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <span className="text-sm text-gray-500">测试进度</span>
-                  <p className="text-lg font-semibold text-gray-800">{progress.current} / {progress.total}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm text-gray-500">用时</span>
-                  <p className="text-2xl font-mono font-bold text-orange-500">{formatTime(timer.time)}</p>
-                </div>
+        {/* 测试阶段 */}
+        {phase === "test" && currentRoom && (
+          <div className="space-y-4">
+            {/* 进度 */}
+            <div className="card flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">已放置</p>
+                <p className="text-xl font-bold text-purple-600">
+                  {userPlacements.length} / {engine?.getCorrectPlacements().length || 0}
+                </p>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-purple-500 h-2 rounded-full transition-all duration-300" style={{ width: `${(progress.current / progress.total) * 100}%` }} />
+              <div className="text-right">
+                <p className="text-sm text-gray-500">剩余物品</p>
+                <p className="text-lg font-medium text-gray-700">{unplacedItems.length}</p>
               </div>
             </div>
-            <SceneDisplay elements={elements} showElements={false} />
-            <SceneQuestion question={currentQuestion} onAnswer={handleAnswer} disabled={showFeedback} lastAnswer={lastAnswer} lastCorrect={lastCorrect} showFeedback={showFeedback} />
-            <button onClick={handleChangeDifficulty} className="btn-secondary w-full">放弃本次训练</button>
+
+            {/* 房间导航 */}
+            {rooms.length > 1 && (
+              <PalaceRoomNav
+                rooms={rooms}
+                currentIndex={currentRoomIndex}
+                onRoomSelect={handleRoomSelect}
+                mode="test"
+              />
+            )}
+
+            {/* 房间视图 */}
+            <PalaceRoom
+              room={currentRoom}
+              placements={currentRoomPlacements}
+              items={itemsMap}
+              mode="test"
+              onAnchorClick={handleAnchorClick}
+              onAnchorDrop={handleAnchorDrop}
+              selectedAnchorId={null}
+              highlightAnchors={!!selectedItem}
+            />
+
+            {/* 物品托盘 */}
+            <PalaceItemTray
+              items={unplacedItems}
+              onItemSelect={setSelectedItem}
+              selectedItemId={selectedItem?.id}
+            />
+
+            {/* 操作按钮 */}
+            <div className="space-y-2">
+              <button
+                onClick={handleComplete}
+                className="btn-primary w-full"
+                disabled={unplacedItems.length === engine?.getAvailableItems().length}
+              >
+                完成放置
+              </button>
+              <button onClick={handleChangeDifficulty} className="btn-secondary w-full">
+                放弃训练
+              </button>
+            </div>
           </div>
         )}
 
+        {/* 结果阶段 */}
         {phase === "result" && result && (
           <div className="space-y-4">
-            <SceneResult result={result} onRestart={handleRestart} onChangeDifficulty={handleChangeDifficulty} />
+            <PalaceResult
+              result={result}
+              onRestart={handleRestart}
+              onChangeDifficulty={handleChangeDifficulty}
+            />
             <Leaderboard moduleType="scene" currentScore={result.score} currentDuration={result.duration} />
             {isSaving && <p className="text-center text-sm text-gray-500">正在保存记录...</p>}
           </div>
