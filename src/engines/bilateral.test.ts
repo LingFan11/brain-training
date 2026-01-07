@@ -14,7 +14,6 @@ import * as fc from 'fast-check';
 import {
   BilateralEngine,
   generatePatterns,
-  generatePattern,
   validatePattern,
   validatePatterns,
   validateMirrorPattern,
@@ -24,7 +23,6 @@ import {
   getBilateralConfigFromDifficulty,
   adjustBilateralDifficulty,
   type BilateralConfig,
-  type BilateralTarget,
 } from './bilateral';
 
 // Arbitrary for valid pattern complexity (1-5)
@@ -38,9 +36,6 @@ const patternCountArb = fc.integer({ min: 3, max: 20 });
 
 // Arbitrary for mirror ratio (0-1)
 const mirrorRatioArb = fc.float({ min: Math.fround(0), max: Math.fround(1), noNaN: true });
-
-// Arbitrary for valid difficulty (1-10)
-const difficultyArb = fc.integer({ min: 1, max: 10 });
 
 // Arbitrary for valid coordinate (0-1)
 const coordinateArb = fc.float({ min: Math.fround(0.1), max: Math.fround(0.9), noNaN: true });

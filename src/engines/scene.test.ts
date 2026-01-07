@@ -19,49 +19,20 @@ import {
   validateElement,
   validateScene,
   validateTestQuestion,
-  validateTestQuestions,
   getSceneConfigFromDifficulty,
   adjustSceneDifficulty,
   getPositionDescription,
   ELEMENT_TYPES,
   ELEMENT_NAME_MAP,
   type SceneConfig,
-  type SceneElement,
   type TestType,
 } from './scene';
-
-// Arbitrary for valid difficulty (1-10)
-const difficultyArb = fc.integer({ min: 1, max: 10 });
 
 // Arbitrary for valid element count (1-16)
 const elementCountArb = fc.integer({ min: 1, max: 16 });
 
-// Arbitrary for valid study time (5-30 seconds)
-const studyTimeArb = fc.integer({ min: 5, max: 30 });
-
 // Arbitrary for test type
 const testTypeArb = fc.constantFrom<TestType>('item', 'spatial', 'both');
-
-// Arbitrary for valid scene config
-const sceneConfigArb = fc.record({
-  difficulty: difficultyArb,
-  elementCount: elementCountArb,
-  studyTime: studyTimeArb,
-  testType: testTypeArb,
-});
-
-// Arbitrary for valid position (0-1)
-const positionArb = fc.record({
-  x: fc.double({ min: 0, max: 1, noNaN: true }),
-  y: fc.double({ min: 0, max: 1, noNaN: true }),
-});
-
-// Arbitrary for valid scene element
-const sceneElementArb = fc.record({
-  id: fc.string({ minLength: 1, maxLength: 20 }),
-  type: fc.constantFrom(...ELEMENT_TYPES),
-  position: positionArb,
-}) as fc.Arbitrary<SceneElement>;
 
 describe('SceneEngine', () => {
   /**

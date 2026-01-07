@@ -209,8 +209,7 @@ export function getPositionDescription(position: { x: number; y: number }): stri
  * 生成物品测试问题（问某个位置有什么物品）
  */
 function generateItemQuestion(
-  element: SceneElement,
-  _allElements: SceneElement[]
+  element: SceneElement
 ): SceneTestQuestion {
   const posDesc = getPositionDescription(element.position);
   const correctAnswer = ELEMENT_NAME_MAP[element.type];
@@ -237,8 +236,7 @@ function generateItemQuestion(
  * 生成空间测试问题（问某个物品在什么位置）
  */
 function generateSpatialQuestion(
-  element: SceneElement,
-  _allElements: SceneElement[]
+  element: SceneElement
 ): SceneTestQuestion {
   const elementName = ELEMENT_NAME_MAP[element.type];
   const correctAnswer = getPositionDescription(element.position);
@@ -291,12 +289,12 @@ export function generateTestQuestions(
   const shuffledElements = [...elements].sort(() => Math.random() - 0.5);
   
   for (let i = 0; i < itemCount && i < shuffledElements.length; i++) {
-    questions.push(generateItemQuestion(shuffledElements[i], elements));
+    questions.push(generateItemQuestion(shuffledElements[i]));
   }
   
   for (let i = 0; i < spatialCount && i < shuffledElements.length; i++) {
     const elementIndex = (itemCount + i) % shuffledElements.length;
-    questions.push(generateSpatialQuestion(shuffledElements[elementIndex], elements));
+    questions.push(generateSpatialQuestion(shuffledElements[elementIndex]));
   }
   
   // 打乱问题顺序

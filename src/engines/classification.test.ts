@@ -28,7 +28,6 @@ import {
   SIZES,
   type ClassificationItem,
   type ClassificationConfig,
-  type ClassificationRule,
 } from './classification';
 
 // Arbitrary for valid difficulty (1-10)
@@ -39,17 +38,6 @@ const attributeCountArb = fc.integer({ min: 1, max: 3 });
 
 // Arbitrary for valid item count (5-50)
 const itemCountArb = fc.integer({ min: 5, max: 50 });
-
-// Arbitrary for valid consecutive to switch (2-10)
-const consecutiveToSwitchArb = fc.integer({ min: 2, max: 10 });
-
-// Arbitrary for valid classification config
-const classificationConfigArb = fc.record({
-  difficulty: difficultyArb,
-  attributeCount: attributeCountArb,
-  itemCount: itemCountArb,
-  consecutiveToSwitch: consecutiveToSwitchArb,
-});
 
 // Arbitrary for valid classification item
 const classificationItemArb = fc.record({
@@ -381,7 +369,6 @@ describe('ClassificationEngine', () => {
     engine.start();
     
     const rule = engine.getCurrentRule();
-    let correctCount = 0;
     
     // Answer 7 correctly, 3 incorrectly
     for (let i = 0; i < 10; i++) {
@@ -391,7 +378,6 @@ describe('ClassificationEngine', () => {
       const correctAnswer = rule.test(item);
       if (i < 7) {
         engine.respond(correctAnswer);
-        correctCount++;
       } else {
         engine.respond(!correctAnswer);
       }
