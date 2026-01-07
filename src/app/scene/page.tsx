@@ -241,7 +241,6 @@ export default function ScenePage() {
     setSelectedItem(null);
   }, []);
 
-  const config = getPalaceConfigFromDifficulty(difficulty);
   const rooms = engine?.getRooms() || [];
   const currentRoom = rooms[currentRoomIndex];
   const unplacedItems = engine?.getUnplacedItems() || [];
