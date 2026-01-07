@@ -253,7 +253,7 @@ export default function ScenePage() {
             </div>
             <SceneDisplay elements={elements} showElements={true} />
             <div className="card bg-purple-50 border-purple-200">
-              <p className="text-sm text-purple-700 text-center">💡 记住物品的类型和它们在场景中的位置</p>
+              <p className="text-sm text-purple-700 text-center">🪬 记住物品的类型和它们在场景中的位置</p>
             </div>
             <button onClick={handleChangeDifficulty} className="btn-secondary w-full">放弃本次训练</button>
           </div>

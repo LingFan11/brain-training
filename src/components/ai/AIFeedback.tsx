@@ -44,7 +44,7 @@ export default function AIFeedback({ record }: AIFeedbackProps) {
     return (
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mt-4">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg">🤖</span>
+          <span className="text-lg">🦾</span>
           <span className="text-sm font-medium text-gray-600">AI 助手</span>
         </div>
         <div className="flex items-center gap-2">
@@ -62,7 +62,7 @@ export default function AIFeedback({ record }: AIFeedbackProps) {
   return (
     <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mt-4">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-lg">🤖</span>
+        <span className="text-lg">🦾</span>
         <span className="text-sm font-medium text-gray-600">AI 助手</span>
       </div>
       <p className="text-gray-700 text-sm leading-relaxed">{feedback}</p>

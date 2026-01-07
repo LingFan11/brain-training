@@ -40,11 +40,11 @@ export default function TrainingIntro({
         <div className="space-y-4 mt-4 pt-4 border-t border-white/30">
           {/* 训练益处 */}
           <div>
-            <h3 className="text-sm font-medium text-gray-800 mb-2">🎯 训练益处</h3>
+            <h3 className="text-sm font-medium text-gray-800 mb-2">🎠 训练益处</h3>
             <ul className="space-y-1">
               {benefits.map((benefit, index) => (
                 <li key={index} className="text-sm text-gray-700 flex items-start">
-                  <span className="text-emerald-500 mr-2">✓</span>
+                  <span className="text-emerald-500 mr-2">◈</span>
                   {benefit}
                 </li>
               ))}
@@ -54,7 +54,7 @@ export default function TrainingIntro({
           {/* 参考数据 */}
           {referenceData && referenceData.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-800 mb-2">📊 参考标准</h3>
+              <h3 className="text-sm font-medium text-gray-800 mb-2">🧿 参考标准</h3>
               {referenceData.map((section, sectionIndex) => (
                 <div key={sectionIndex} className="mb-3">
                   <p className="text-xs font-medium text-gray-600 mb-1">{section.title}</p>
@@ -81,7 +81,7 @@ export default function TrainingIntro({
           {/* 训练技巧 */}
           {tips && tips.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-800 mb-2">💡 训练技巧</h3>
+              <h3 className="text-sm font-medium text-gray-800 mb-2">🪬 训练技巧</h3>
               <ul className="space-y-1">
                 {tips.map((tip, index) => (
                   <li key={index} className="text-sm text-gray-700 flex items-start">

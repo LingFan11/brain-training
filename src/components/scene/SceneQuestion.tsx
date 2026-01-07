@@ -35,7 +35,7 @@ export default function SceneQuestion({
       <div className="card">
         <div className="flex items-center mb-3">
           <span className={`text-lg mr-2 ${question.type === 'item' ? 'text-blue-500' : 'text-green-500'}`}>
-            {question.type === 'item' ? '📦' : '📍'}
+            {question.type === 'item' ? '🗃️' : '📌'}
           </span>
           <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
             {question.type === 'item' ? '物品记忆' : '位置记忆'}

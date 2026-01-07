@@ -8,24 +8,24 @@ interface SceneDisplayProps {
   highlightedElementId?: string | null;
 }
 
-// 元素图标映射（使用 emoji 作为简单实现）
+// 元素图标映射（使用不常用 emoji）
 const ELEMENT_ICON_MAP: Record<string, string> = {
-  apple: "🍎",
-  banana: "🍌",
-  book: "📖",
-  cup: "☕",
-  key: "🔑",
-  phone: "📱",
-  clock: "⏰",
-  lamp: "💡",
-  chair: "🪑",
-  ball: "⚽",
-  hat: "🎩",
-  shoe: "👟",
-  pen: "🖊️",
-  flower: "🌸",
-  star: "⭐",
-  heart: "❤️",
+  apple: "🍑",
+  banana: "🥝",
+  book: "🗞️",
+  cup: "🫖",
+  key: "🗝️",
+  phone: "🪭",
+  clock: "🕰️",
+  lamp: "🪔",
+  chair: "🛋️",
+  ball: "🏐",
+  hat: "🪖",
+  shoe: "🩴",
+  pen: "🖋️",
+  flower: "🪻",
+  star: "✴️",
+  heart: "🫀",
 };
 
 export default function SceneDisplay({
@@ -50,7 +50,7 @@ export default function SceneDisplay({
 
         {/* 场景元素 */}
         {showElements && elements.map((element) => {
-          const icon = ELEMENT_ICON_MAP[element.type] || "❓";
+          const icon = ELEMENT_ICON_MAP[element.type] || "⁉️";
           const isHighlighted = highlightedElementId === element.id;
           
           return (
@@ -79,7 +79,7 @@ export default function SceneDisplay({
         {!showElements && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <span className="text-4xl mb-2 block">🧠</span>
+              <span className="text-4xl mb-2 block">🫧</span>
               <p className="text-gray-500 text-sm">回忆场景中的物品...</p>
             </div>
           </div>

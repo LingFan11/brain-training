@@ -140,11 +140,11 @@ export default function Leaderboard({
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return "🥇";
+        return "🏅";
       case 2:
-        return "🥈";
+        return "🎖️";
       case 3:
-        return "🥉";
+        return "🔰";
       default:
         return rank.toString();
     }
@@ -164,7 +164,7 @@ export default function Leaderboard({
   if (entries.length === 0) {
     return (
       <div className="card">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">🏆 排行榜</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-3">🎪 排行榜</h3>
         <p className="text-center text-gray-500 py-4 text-sm">暂无记录，快来创造第一个记录吧！</p>
       </div>
     );
@@ -173,7 +173,7 @@ export default function Leaderboard({
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-700">🏆 排行榜</h3>
+        <h3 className="text-sm font-medium text-gray-700">🎪 排行榜</h3>
         <div className="flex gap-1">
           <button
             onClick={() => setSortBy("score")}

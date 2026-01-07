@@ -18,10 +18,10 @@ export default function SceneResult({
   savedRecord,
 }: SceneResultProps) {
   const getScoreLevel = (accuracy: number) => {
-    if (accuracy >= 0.9) return { label: "优秀", color: "text-green-600", emoji: "🏆" };
-    if (accuracy >= 0.7) return { label: "良好", color: "text-blue-600", emoji: "👍" };
-    if (accuracy >= 0.5) return { label: "及格", color: "text-yellow-600", emoji: "💪" };
-    return { label: "继续努力", color: "text-gray-600", emoji: "📚" };
+    if (accuracy >= 0.9) return { label: "优秀", color: "text-green-600", emoji: "🎭" };
+    if (accuracy >= 0.7) return { label: "良好", color: "text-blue-600", emoji: "🪅" };
+    if (accuracy >= 0.5) return { label: "及格", color: "text-yellow-600", emoji: "🧩" };
+    return { label: "继续努力", color: "text-gray-600", emoji: "🪁" };
   };
 
   const scoreLevel = getScoreLevel(result.accuracy);
@@ -74,7 +74,7 @@ export default function SceneResult({
         <div className="space-y-3">
           <div>
             <div className="flex justify-between text-sm mb-1">
-              <span className="text-gray-600">📦 物品记忆</span>
+              <span className="text-gray-600">🗃️ 物品记忆</span>
               <span className="font-medium text-blue-600">
                 {Math.round(result.itemAccuracy * 100)}%
               </span>
@@ -88,7 +88,7 @@ export default function SceneResult({
           </div>
           <div>
             <div className="flex justify-between text-sm mb-1">
-              <span className="text-gray-600">📍 位置记忆</span>
+              <span className="text-gray-600">📌 位置记忆</span>
               <span className="font-medium text-green-600">
                 {Math.round(result.spatialAccuracy * 100)}%
               </span>

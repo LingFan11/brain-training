@@ -62,7 +62,7 @@ export default function ClassificationButtons({
             transform: getButtonStyle(true).transform,
           }}
         >
-          ✓ 符合
+          ◈ 符合
         </button>
         <button
           onClick={() => onSelect(false)}
@@ -80,7 +80,7 @@ export default function ClassificationButtons({
             transform: getButtonStyle(false).transform,
           }}
         >
-          ✗ 不符合
+          ◇ 不符合
         </button>
       </div>
     </div>

@@ -39,11 +39,11 @@ const MODULE_LIGHT_COLORS: Record<string, string> = {
 // 连续训练天数显示组件
 function StreakDisplay({ streakDays }: { streakDays: number }) {
   const getStreakEmoji = (days: number) => {
-    if (days >= 30) return "🏆";
-    if (days >= 14) return "🔥";
-    if (days >= 7) return "⭐";
-    if (days >= 3) return "💪";
-    return "🌱";
+    if (days >= 30) return "🎭";
+    if (days >= 14) return "🌋";
+    if (days >= 7) return "✴️";
+    if (days >= 3) return "🧩";
+    return "🌿";
   };
 
   const getStreakMessage = (days: number) => {
@@ -341,7 +341,7 @@ export default function StatsPage() {
       <PageLayout title="训练统计">
         <div className="space-y-4">
           <div className="card text-center py-8">
-            <div className="text-4xl mb-3">📊</div>
+            <div className="text-4xl mb-3">🧿</div>
             <p className="text-gray-500">暂无训练记录</p>
             <p className="text-sm text-gray-400 mt-1">完成训练后将在此显示统计数据</p>
           </div>
@@ -395,7 +395,7 @@ export default function StatsPage() {
         {activeModules.length < 7 && (
           <div className="card bg-gradient-to-r from-gray-50 to-slate-50">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">🎯</span>
+              <span className="text-2xl">🎠</span>
               <div>
                 <p className="text-sm font-medium text-gray-700">
                   还有 {7 - activeModules.length} 个模块等待探索
