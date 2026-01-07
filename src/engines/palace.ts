@@ -203,13 +203,6 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 /**
- * 生成唯一ID
- */
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 9);
-}
-
-/**
  * 创建初始状态
  */
 export function createPalaceInitialState(config: PalaceConfig): PalaceState {
