@@ -4,75 +4,70 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { PageLayout } from "@/components/layout";
 import {
-  SimonBoard,
-  SimonStatus,
-  SimonResult,
-  SimonDifficultySelector,
-} from "@/components/simon";
+  SoundMatchBoard,
+  SoundMatchStatus,
+  SoundMatchResult,
+  SoundMatchDifficultySelector,
+} from "@/components/soundMatch";
 import { TrainingIntro, Leaderboard } from "@/components/shared";
 import {
-  SimonEngine,
-  getSimonConfigFromDifficulty,
-  playTone,
-  type SimonResult as SimonResultType,
-  type SoundId,
-} from "@/engines/simon";
+  SoundMatchEngine,
+  getSoundMatchConfigFromDifficulty,
+  playSpeech,
+  type SoundMatchResult as SoundMatchResultType,
+} from "@/engines/soundMatch";
 import { saveRecord } from "@/services/storage";
 
 type GamePhase = "setup" | "playing" | "result";
 
-const SIMON_INTRO = {
+const SOUND_MATCH_INTRO = {
   title: "训练说明",
   description:
-    "系统会播放一段声音序列，每个声音对应一个动物图标。仔细听并记住顺序，然后按相同顺序点击图标重复。每成功一轮，序列会增加一个声音。",
+    "屏幕上有多张卡片，每张卡片隐藏着一个声音。点击卡片听声音，找出声音相同的两张卡片进行配对。用最少的尝试次数完成所有配对。",
   benefits: [
-    "训练听觉工作记忆",
-    "提升序列记忆能力",
-    "增强注意力集中",
-    "改善听觉-动作协调",
-    "锻炼短期记忆容量",
+    "训练听觉记忆能力",
+    "提升声音辨别能力",
+    "增强听觉注意力",
+    "改善工作记忆",
+    "锻炼听觉-空间关联",
   ],
   tips: [
-    "专注听每个声音的特征",
-    "在脑中默念声音顺序",
-    "利用图标位置辅助记忆",
-    "保持节奏稳定地输入",
-    "错误后不要慌张，重新开始",
+    "仔细听每个声音的特征",
+    "记住声音的位置",
+    "不要急于点击，先听完再判断",
+    "利用声音的独特性辅助记忆",
+    "尝试在脑中复述声音",
   ],
   referenceData: [
     {
-      title: "记忆容量参考",
+      title: "表现标准",
       items: [
-        { label: "普通人", value: "5-7个" },
-        { label: "训练后", value: "8-10个" },
-        { label: "记忆高手", value: "12+个" },
+        { label: "优秀", value: "一次配对>60%" },
+        { label: "良好", value: "一次配对40-60%" },
+        { label: "一般", value: "一次配对<40%" },
       ],
     },
     {
-      title: "表现标准",
+      title: "效率参考",
       items: [
-        { label: "入门", value: "序列4-5" },
-        { label: "良好", value: "序列6-7" },
-        { label: "优秀", value: "序列8-9" },
-        { label: "大师", value: "序列10+" },
+        { label: "完美", value: "尝试=配对数" },
+        { label: "优秀", value: "尝试<配对数×1.5" },
+        { label: "良好", value: "尝试<配对数×2" },
       ],
     },
   ],
 };
 
-
 export default function AuditoryPage() {
   const [difficulty, setDifficulty] = useState(5);
   const [phase, setPhase] = useState<GamePhase>("setup");
-  const [engine, setEngine] = useState<SimonEngine | null>(null);
-  const [activeSound, setActiveSound] = useState<SoundId | null>(null);
-  const [result, setResult] = useState<SimonResultType | null>(null);
+  const [engine, setEngine] = useState<SoundMatchEngine | null>(null);
+  const [playingCardId, setPlayingCardId] = useState<string | null>(null);
+  const [result, setResult] = useState<SoundMatchResultType | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [gamePhase, setGamePhase] = useState<"watch" | "repeat" | "feedback">("watch");
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [, forceUpdate] = useState({});
 
-  const playingRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -81,44 +76,12 @@ export default function AuditoryPage() {
     };
   }, []);
 
-  const playSequence = useCallback(async (eng: SimonEngine) => {
-    if (playingRef.current) return;
-    playingRef.current = true;
-
-    const sequence = eng.getSequence();
-    const sounds = eng.getActiveSounds();
-    const config = eng.getConfig();
-
-    setGamePhase("watch");
-    await new Promise(r => setTimeout(r, 500));
-
-    for (let i = 0; i < sequence.length; i++) {
-      if (!playingRef.current) break;
-      const soundId = sequence[i];
-      const sound = sounds.find(s => s.id === soundId);
-      if (sound) {
-        eng.setPlayIndex(i);
-        setActiveSound(soundId);
-        await playTone(sound.freq, 300);
-        await new Promise(r => setTimeout(r, 100));
-        setActiveSound(null);
-        await new Promise(r => setTimeout(r, config.playSpeed - 400));
-      }
-    }
-
-    eng.setPlayIndex(-1);
-    eng.finishPlaying();
-    setGamePhase("repeat");
-    playingRef.current = false;
-  }, []);
-
   const initializeEngine = useCallback((diff: number) => {
-    const config = getSimonConfigFromDifficulty(diff);
-    const newEngine = new SimonEngine(config);
+    const config = getSoundMatchConfigFromDifficulty(diff);
+    const newEngine = new SoundMatchEngine(config);
     setEngine(newEngine);
-    setActiveSound(null);
-    setFeedbackMessage(null);
-    setGamePhase("watch");
+    setPlayingCardId(null);
+    setIsProcessing(false);
     return newEngine;
   }, []);
 
@@ -126,76 +89,75 @@ export default function AuditoryPage() {
     const eng = initializeEngine(difficulty);
     eng.start();
     setPhase("playing");
-    setTimeout(() => playSequence(eng), 300);
-  }, [difficulty, initializeEngine, playSequence]);
+  }, [difficulty, initializeEngine]);
 
-  const handleSoundClick = useCallback((soundId: SoundId) => {
-    if (!engine || gamePhase !== "repeat") return;
-    setActiveSound(soundId);
-    setTimeout(() => setActiveSound(null), 150);
 
-    const res = engine.input(soundId);
+  const handleCardClick = useCallback(async (cardId: string) => {
+    if (!engine || isProcessing) return;
+
+    const res = engine.selectCard(cardId);
+    if (!res.success) return;
+
     forceUpdate({});
 
-    if (res.roundComplete) {
-      setGamePhase("feedback");
-      if (res.complete) {
-        const gameResult = engine.calculateResult();
-        setResult(gameResult);
-        setPhase("result");
-        setIsSaving(true);
-        saveRecord({
-          moduleType: "auditory",
-          score: gameResult.score,
-          accuracy: gameResult.accuracy,
-          duration: Math.round(gameResult.duration),
-          difficulty: difficulty,
-          details: {
-            highestLength: gameResult.highestLength,
-            totalRounds: gameResult.totalRounds,
-            correctRounds: gameResult.correctRounds,
-            avgSequenceLength: gameResult.avgSequenceLength,
-          },
-        })
-          .catch((error) => console.error("Failed to save record:", error))
-          .finally(() => setIsSaving(false));
-      } else {
-        if (res.correct) {
-          setFeedbackMessage("太棒了！准备下一轮...");
-          timeoutRef.current = setTimeout(() => {
-            engine.nextRound();
-            setFeedbackMessage(null);
-            forceUpdate({});
-            playSequence(engine);
-          }, 1500);
-        } else {
-          setFeedbackMessage(`错误！还剩 ${engine.getLives()} 条命`);
-          timeoutRef.current = setTimeout(() => {
-            engine.retryRound();
-            setFeedbackMessage(null);
-            forceUpdate({});
-            playSequence(engine);
-          }, 2000);
-        }
-      }
+    // 播放声音
+    if (res.sound) {
+      setPlayingCardId(cardId);
+      await playSpeech(res.sound.speech);
+      setPlayingCardId(null);
     }
-  }, [engine, gamePhase, difficulty, playSequence]);
+
+    // 如果选了两张卡片
+    if (engine.getSelectedCards().length === 2) {
+      setIsProcessing(true);
+      await new Promise(r => setTimeout(r, 800));
+
+      if (res.isMatch) {
+        engine.clearSelection();
+        forceUpdate({});
+
+        if (engine.isComplete()) {
+          const gameResult = engine.calculateResult();
+          setResult(gameResult);
+          setPhase("result");
+
+          setIsSaving(true);
+          saveRecord({
+            moduleType: "auditory",
+            score: gameResult.score,
+            accuracy: gameResult.accuracy,
+            duration: Math.round(gameResult.duration),
+            difficulty: difficulty,
+            details: {
+              pairCount: gameResult.pairCount,
+              matchedPairs: gameResult.matchedPairs,
+              attempts: gameResult.attempts,
+              perfectMatches: gameResult.perfectMatches,
+            },
+          })
+            .catch((error) => console.error("Failed to save record:", error))
+            .finally(() => setIsSaving(false));
+        }
+      } else {
+        engine.resetSelection();
+        forceUpdate({});
+      }
+      setIsProcessing(false);
+    }
+  }, [engine, isProcessing, difficulty]);
 
   const handleRestart = useCallback(() => {
-    playingRef.current = false;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setResult(null);
     startGame();
   }, [startGame]);
 
   const handleChangeDifficulty = useCallback(() => {
-    playingRef.current = false;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setEngine(null);
     setResult(null);
     setPhase("setup");
   }, []);
-
 
   return (
     <PageLayout showNav={false}>
@@ -207,14 +169,14 @@ export default function AuditoryPage() {
             </svg>
             返回
           </Link>
-          <h1 className="text-lg font-semibold text-gray-900">声音序列记忆</h1>
+          <h1 className="text-lg font-semibold text-gray-900">声音配对记忆</h1>
           <div className="w-12" />
         </div>
 
         {phase === "setup" && (
           <div className="space-y-4">
-            <TrainingIntro {...SIMON_INTRO} />
-            <SimonDifficultySelector selectedDifficulty={difficulty} onSelect={setDifficulty} />
+            <TrainingIntro {...SOUND_MATCH_INTRO} />
+            <SoundMatchDifficultySelector selectedDifficulty={difficulty} onSelect={setDifficulty} />
             <Leaderboard moduleType="auditory" />
             <button onClick={startGame} className="btn-primary w-full text-lg py-4">开始训练</button>
           </div>
@@ -222,28 +184,22 @@ export default function AuditoryPage() {
 
         {phase === "playing" && engine && (
           <div className="space-y-4">
-            <SimonStatus
-              round={engine.getRound()}
-              sequenceLength={engine.getSequenceLength()}
-              lives={engine.getLives()}
-              maxLives={engine.getMaxLives()}
-              highestLength={engine.getHighestLength()}
-              phase={gamePhase}
-              userInputLength={engine.getUserInput().length}
+            <SoundMatchStatus
+              matchedPairs={engine.getMatchedPairs()}
+              totalPairs={engine.getTotalPairs()}
+              attempts={engine.getAttempts()}
+              timeLeft={null}
             />
-            {feedbackMessage && (
-              <div className={`card text-center py-4 ${engine.getLastRoundCorrect() ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
-                <p className={`font-medium ${engine.getLastRoundCorrect() ? "text-green-700" : "text-red-700"}`}>{feedbackMessage}</p>
-              </div>
-            )}
-            <div className="card py-8">
-              <SimonBoard
-                sounds={engine.getActiveSounds()}
-                activeSound={activeSound}
-                onSoundClick={handleSoundClick}
-                disabled={gamePhase !== "repeat"}
-                mode={gamePhase === "repeat" ? "repeat" : "watch"}
+            <div className="card">
+              <SoundMatchBoard
+                cards={engine.getCards()}
+                playingCardId={playingCardId}
+                onCardClick={handleCardClick}
+                disabled={isProcessing}
               />
+            </div>
+            <div className="card bg-purple-50 border-purple-200">
+              <p className="text-sm text-purple-700 text-center">🎧 点击卡片听声音，找出相同声音的配对</p>
             </div>
             <button onClick={handleChangeDifficulty} className="btn-secondary w-full">放弃训练</button>
           </div>
@@ -251,7 +207,7 @@ export default function AuditoryPage() {
 
         {phase === "result" && result && (
           <div className="space-y-4">
-            <SimonResult result={result} onRestart={handleRestart} onChangeDifficulty={handleChangeDifficulty} />
+            <SoundMatchResult result={result} onRestart={handleRestart} onChangeDifficulty={handleChangeDifficulty} />
             <Leaderboard moduleType="auditory" currentScore={result.score} currentDuration={result.duration} />
             {isSaving && <p className="text-center text-sm text-gray-500">正在保存记录...</p>}
           </div>
