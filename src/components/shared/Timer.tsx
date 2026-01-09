@@ -40,7 +40,8 @@ export default function Timer({ isRunning, onTimeUpdate, className = "" }: Timer
     if (!isRunning && time === 0) {
       startTimeRef.current = null;
     }
-  }, [isRunning, time]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRunning]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

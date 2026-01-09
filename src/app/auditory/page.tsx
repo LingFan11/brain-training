@@ -66,8 +66,8 @@ export default function AuditoryPage() {
   const [result, setResult] = useState<SoundMatchResultType | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [matchFeedback, setMatchFeedback] = useState<'success' | 'fail' | null>(null);
-  const [, forceUpdate] = useSta
+  const [matchFeedback, setMatchFeedback] = useState<"success" | "fail" | null>(null);
+  const [, forceUpdate] = useState({});
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -83,6 +83,7 @@ export default function AuditoryPage() {
     setEngine(newEngine);
     setPlayingCardId(null);
     setIsProcessing(false);
+    setMatchFeedback(null);
     return newEngine;
   }, []);
 
@@ -101,24 +102,23 @@ export default function AuditoryPage() {
 
     forceUpdate({});
 
-    // 播放声音
     if (res.sound) {
       setPlayingCardId(cardId);
       await playSpeech(res.sound.speech);
       setPlayingCardId(null);
     }
 
-    // 如果选了两张卡片
     const selected = engine.getSelectedCards();
     if (selected.length === 2) {
       setIsProcessing(true);
-      await new Promise(r => setTimeout(r, 800));
 
       if (res.isMatch) {
+        setMatchFeedback("success");
+        await new Promise(r => setTimeout(r, 600));
         engine.clearSelection();
+        setMatchFeedback(null);
         forceUpdate({});
 
-        // 检查是否完成所有配对
         if (engine.getMatchedPairs() >= engine.getTotalPairs()) {
           const gameResult = engine.calculateResult();
           setResult(gameResult);
@@ -143,7 +143,10 @@ export default function AuditoryPage() {
           return;
         }
       } else {
+        setMatchFeedback("fail");
+        await new Promise(r => setTimeout(r, 800));
         engine.resetSelection();
+        setMatchFeedback(null);
         forceUpdate({});
       }
       setIsProcessing(false);
@@ -161,7 +164,9 @@ export default function AuditoryPage() {
     setEngine(null);
     setResult(null);
     setPhase("setup");
+    setMatchFeedback(null);
   }, []);
+
 
   return (
     <PageLayout showNav={false}>
@@ -194,6 +199,15 @@ export default function AuditoryPage() {
               attempts={engine.getAttempts()}
               timeLeft={null}
             />
+
+            {matchFeedback && (
+              <div className={`card text-center py-3 ${matchFeedback === "success" ? "bg-green-50 border-green-300" : "bg-red-50 border-red-300"}`}>
+                <p className={`font-medium ${matchFeedback === "success" ? "text-green-700" : "text-red-700"}`}>
+                  {matchFeedback === "success" ? "✅ 配对成功！" : "❌ 不匹配，再试试"}
+                </p>
+              </div>
+            )}
+
             <div className="card">
               <SoundMatchBoard
                 cards={engine.getCards()}
@@ -202,9 +216,11 @@ export default function AuditoryPage() {
                 disabled={isProcessing}
               />
             </div>
+
             <div className="card bg-purple-50 border-purple-200">
               <p className="text-sm text-purple-700 text-center">🎧 点击卡片听声音，找出相同声音的配对</p>
             </div>
+
             <button onClick={handleChangeDifficulty} className="btn-secondary w-full">放弃训练</button>
           </div>
         )}

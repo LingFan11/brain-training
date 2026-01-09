@@ -172,6 +172,7 @@ export default function BilateralPage() {
       const startDelay = setTimeout(() => showNextPattern(), 1000);
       return () => clearTimeout(startDelay);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, engine]);
 
   const handleRestart = useCallback(() => {

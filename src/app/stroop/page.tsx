@@ -140,6 +140,7 @@ export default function StroopPage() {
         setProgress(engine.getProgress());
       }
     }, 300);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engine, phase, difficulty]);
 
   // 重新开始（相同难度）
