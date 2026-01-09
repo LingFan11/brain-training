@@ -66,7 +66,8 @@ export default function AuditoryPage() {
   const [result, setResult] = useState<SoundMatchResultType | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [, forceUpdate] = useState({});
+  const [matchFeedback, setMatchFeedback] = useState<'success' | 'fail' | null>(null);
+  const [, forceUpdate] = useSta
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -108,7 +109,8 @@ export default function AuditoryPage() {
     }
 
     // 如果选了两张卡片
-    if (engine.getSelectedCards().length === 2) {
+    const selected = engine.getSelectedCards();
+    if (selected.length === 2) {
       setIsProcessing(true);
       await new Promise(r => setTimeout(r, 800));
 
@@ -116,7 +118,8 @@ export default function AuditoryPage() {
         engine.clearSelection();
         forceUpdate({});
 
-        if (engine.isComplete()) {
+        // 检查是否完成所有配对
+        if (engine.getMatchedPairs() >= engine.getTotalPairs()) {
           const gameResult = engine.calculateResult();
           setResult(gameResult);
           setPhase("result");
@@ -137,6 +140,7 @@ export default function AuditoryPage() {
           })
             .catch((error) => console.error("Failed to save record:", error))
             .finally(() => setIsSaving(false));
+          return;
         }
       } else {
         engine.resetSelection();
