@@ -184,11 +184,12 @@ export default function ScenePage() {
   // 切换房间（测试阶段）
   const handleRoomSelect = useCallback(
     (index: number) => {
-      if (phase === "test" && engine && index >= 0 && index < rooms.length) {
+      const roomCount = engine?.getRooms().length || 0;
+      if (phase === "test" && engine && index >= 0 && index < roomCount) {
         setCurrentRoomIndex(index);
       }
     },
-    [phase, engine, rooms.length]
+    [phase, engine]
   );
 
   // 完成测试
