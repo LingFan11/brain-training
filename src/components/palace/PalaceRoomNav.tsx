@@ -42,7 +42,7 @@ export default function PalaceRoomNav({
           const isCurrent = index === currentIndex;
           const isPast = index < currentIndex;
           const isCompleted = completedRooms.has(index);
-          const canClick = mode === "test" && index <= currentIndex;
+          const canClick = mode === "test" && onRoomSelect;
           
           return (
             <div

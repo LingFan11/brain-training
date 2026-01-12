@@ -184,11 +184,11 @@ export default function ScenePage() {
   // 切换房间（测试阶段）
   const handleRoomSelect = useCallback(
     (index: number) => {
-      if (phase === "test" && engine) {
+      if (phase === "test" && engine && index >= 0 && index < rooms.length) {
         setCurrentRoomIndex(index);
       }
     },
-    [phase, engine]
+    [phase, engine, rooms.length]
   );
 
   // 完成测试
@@ -349,6 +349,34 @@ export default function ScenePage() {
                 onRoomSelect={handleRoomSelect}
                 mode="test"
               />
+            )}
+
+            {/* 房间切换按钮 */}
+            {rooms.length > 1 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleRoomSelect(currentRoomIndex - 1)}
+                  disabled={currentRoomIndex === 0}
+                  className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
+                    currentRoomIndex === 0
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                  }`}
+                >
+                  ← 上一个房间
+                </button>
+                <button
+                  onClick={() => handleRoomSelect(currentRoomIndex + 1)}
+                  disabled={currentRoomIndex === rooms.length - 1}
+                  className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all ${
+                    currentRoomIndex === rooms.length - 1
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                  }`}
+                >
+                  下一个房间 →
+                </button>
+              </div>
             )}
 
             {/* 房间视图 */}
