@@ -50,7 +50,7 @@ export default function Leaderboard({
       const records = await getRecords(moduleType, 500);
       
       // 提取所有可用的难度等级
-      const difficulties = [...new Set(records.map(r => r.difficulty))].sort((a, b) => a - b);
+      const difficulties = Array.from(new Set(records.map(r => r.difficulty))).sort((a, b) => a - b);
       setAvailableDifficulties(difficulties);
       
       // 按难度筛选
