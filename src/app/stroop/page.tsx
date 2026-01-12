@@ -311,6 +311,7 @@ export default function StroopPage() {
               moduleType="stroop" 
               currentScore={result.score}
               currentDuration={result.duration}
+              currentDifficulty={difficulty}
             />
             
             {isSaving && (

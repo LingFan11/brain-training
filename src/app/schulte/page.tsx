@@ -308,6 +308,7 @@ export default function SchultePage() {
               moduleType="schulte" 
               currentScore={result.score}
               currentDuration={result.duration}
+              currentDifficulty={getDifficultyFromGridSize(gridSize)}
             />
             
             {isSaving && (

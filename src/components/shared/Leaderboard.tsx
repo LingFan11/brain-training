@@ -8,6 +8,7 @@ interface LeaderboardProps {
   moduleType: TrainingModuleType;
   currentScore?: number;
   currentDuration?: number;
+  currentDifficulty?: number;
 }
 
 interface LeaderboardEntry {
@@ -23,23 +24,43 @@ export default function Leaderboard({
   moduleType,
   currentScore,
   currentDuration,
+  currentDifficulty,
 }: LeaderboardProps) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"score" | "duration">("score");
+  const [difficulty, setDifficulty] = useState<number | "all">("all");
+  const [availableDifficulties, setAvailableDifficulties] = useState<number[]>([]);
+
+  // 当有当前难度时，自动切换到该难度
+  useEffect(() => {
+    if (currentDifficulty !== undefined) {
+      setDifficulty(currentDifficulty);
+    }
+  }, [currentDifficulty]);
 
   useEffect(() => {
     loadLeaderboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moduleType, sortBy]);
+  }, [moduleType, sortBy, difficulty]);
 
   const loadLeaderboard = async () => {
     setLoading(true);
     try {
-      const records = await getRecords(moduleType, 100);
+      const records = await getRecords(moduleType, 500);
+      
+      // 提取所有可用的难度等级
+      const difficulties = [...new Set(records.map(r => r.difficulty))].sort((a, b) => a - b);
+      setAvailableDifficulties(difficulties);
+      
+      // 按难度筛选
+      let filteredRecords = records;
+      if (difficulty !== "all") {
+        filteredRecords = records.filter(r => r.difficulty === difficulty);
+      }
       
       // 根据排序方式排序
-      const sorted = [...records].sort((a, b) => {
+      const sorted = [...filteredRecords].sort((a, b) => {
         if (sortBy === "score") {
           return b.score - a.score;
         } else {
@@ -59,39 +80,44 @@ export default function Leaderboard({
 
       // 如果有当前成绩，检查是否进入排行榜
       if (currentScore !== undefined && currentDuration !== undefined) {
-        const currentEntry: LeaderboardEntry = {
-          rank: 0,
-          score: currentScore,
-          duration: currentDuration,
-          accuracy: 1,
-          date: "刚刚",
-          isCurrentSession: true,
-        };
+        // 只有当难度匹配或显示全部时才显示当前成绩
+        const shouldShowCurrent = difficulty === "all" || difficulty === currentDifficulty;
+        
+        if (shouldShowCurrent) {
+          const currentEntry: LeaderboardEntry = {
+            rank: 0,
+            score: currentScore,
+            duration: currentDuration,
+            accuracy: 1,
+            date: "刚刚",
+            isCurrentSession: true,
+          };
 
-        // 计算当前成绩的排名
-        let currentRank = 1;
-        for (const entry of sorted) {
-          if (sortBy === "score") {
-            if (entry.score > currentScore) currentRank++;
-          } else {
-            if (entry.duration < currentDuration) currentRank++;
-          }
-        }
-        currentEntry.rank = currentRank;
-
-        // 如果当前成绩在前10名内，插入到正确位置
-        if (currentRank <= 10) {
-          const insertIndex = currentRank - 1;
-          top10.splice(insertIndex, 0, currentEntry);
-          // 重新计算排名
-          top10.forEach((entry, index) => {
-            if (!entry.isCurrentSession) {
-              entry.rank = index + 1;
+          // 计算当前成绩的排名
+          let currentRank = 1;
+          for (const entry of sorted) {
+            if (sortBy === "score") {
+              if (entry.score > currentScore) currentRank++;
+            } else {
+              if (entry.duration < currentDuration) currentRank++;
             }
-          });
-          // 保持只有10条
-          if (top10.length > 10) {
-            top10.pop();
+          }
+          currentEntry.rank = currentRank;
+
+          // 如果当前成绩在前10名内，插入到正确位置
+          if (currentRank <= 10) {
+            const insertIndex = currentRank - 1;
+            top10.splice(insertIndex, 0, currentEntry);
+            // 重新计算排名
+            top10.forEach((entry, index) => {
+              if (!entry.isCurrentSession) {
+                entry.rank = index + 1;
+              }
+            });
+            // 保持只有10条
+            if (top10.length > 10) {
+              top10.pop();
+            }
           }
         }
       }
@@ -206,6 +232,35 @@ export default function Leaderboard({
           </button>
         </div>
       </div>
+
+      {/* 难度筛选 */}
+      {availableDifficulties.length > 1 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          <button
+            onClick={() => setDifficulty("all")}
+            className={`px-2 py-1 text-xs rounded-lg transition-all duration-200 ${
+              difficulty === "all"
+                ? "bg-purple-500/80 text-white shadow-md"
+                : "glass text-gray-600 hover:bg-white/30"
+            }`}
+          >
+            全部
+          </button>
+          {availableDifficulties.map((d) => (
+            <button
+              key={d}
+              onClick={() => setDifficulty(d)}
+              className={`px-2 py-1 text-xs rounded-lg transition-all duration-200 ${
+                difficulty === d
+                  ? "bg-purple-500/80 text-white shadow-md"
+                  : "glass text-gray-600 hover:bg-white/30"
+              }`}
+            >
+              难度{d}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-2">
         {entries.map((entry, index) => (

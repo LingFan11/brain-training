@@ -266,7 +266,7 @@ export default function BilateralPage() {
         {phase === "result" && result && (
           <div className="space-y-4">
             <BilateralResult result={result} onRestart={handleRestart} onChangeDifficulty={handleChangeDifficulty} />
-            <Leaderboard moduleType="bilateral" currentScore={result.score} currentDuration={result.duration} />
+            <Leaderboard moduleType="bilateral" currentScore={result.score} currentDuration={result.duration} currentDifficulty={difficulty} />
             {isSaving && <p className="text-center text-sm text-gray-500">正在保存记录...</p>}
           </div>
         )}
